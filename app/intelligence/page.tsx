@@ -66,6 +66,25 @@ export default function IntelligencePage() {
                 Our proprietary AI platform leverages deep learning and quantitative analysis to generate superior
                 returns across all market conditions.
               </p>
+
+              {/* FinKing AI Button */}
+              <Link
+                href="https://finking-final.onrender.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-primary to-accent px-8 py-4 text-lg font-semibold text-primary-foreground shadow-2xl transition-all duration-500 hover:scale-105 hover:shadow-primary/50"
+              >
+                <Brain className="h-5 w-5 transition-transform duration-500 group-hover:rotate-12" />
+                <span>Try it out</span>
+                <svg 
+                  className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
             </div>
 
             {/* Right Column - AI Visualization */}
@@ -422,7 +441,7 @@ export default function IntelligencePage() {
                     strokeWidth="2"
                   />
                   <rect width="4" height="12" x="2" y="9" fill="none" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="4" cy="4" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+                  ircle cx="4" cy="4" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
                 </svg>
               </Link>
             </div>
