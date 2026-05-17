@@ -1,5 +1,6 @@
 "use client"
 
+import React, { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Brain, Database, LineChart, Network, Cpu, Zap, Lock, TrendingUp } from "lucide-react"
@@ -7,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function IntelligencePage() {
+  const [activeTab, setActiveTab] = useState("overview")
   return (
     <div className="flex min-h-screen flex-col">
       {/* ─────────────────────────── NAVBAR ─────────────────────────── */}
@@ -27,19 +29,34 @@ export default function IntelligencePage() {
           </Link>
 
           <nav className="hidden gap-2 md:flex">
-            <Link
-              href="/"
-              className="group relative rounded-full px-4 py-2 transition-all duration-300 hover:scale-105"
-            >
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 backdrop-blur-xl transition-opacity duration-300 group-hover:opacity-100" />
-              <span className="relative text-sm font-medium text-muted-foreground transition-colors duration-300 group-hover:text-foreground">
-                Home
-              </span>
-            </Link>
-            <Link href="/intelligence" className="group relative rounded-full px-4 py-2 transition-all duration-300">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 to-accent/30 backdrop-blur-xl" />
-              <span className="relative text-sm font-medium text-foreground">Intelligence</span>
-            </Link>
+            {[
+              { label: "About", href: "/#about" },
+              { label: "Our Approach", href: "/#our-approach" },
+              { label: "Philosophy", href: "/philosophy" },
+              { label: "How It Works", href: "/how-it-works" },
+              { label: "Contact", href: "/#contact" },
+              { label: "Intelligence", href: "/intelligence" },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`group relative rounded-full px-4 py-2 transition-all duration-300 hover:scale-105`}
+              >
+                {item.label === "Intelligence" ? (
+                  <>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 to-accent/30 backdrop-blur-xl" />
+                    <span className="relative text-sm font-medium text-foreground">{item.label}</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 backdrop-blur-xl transition-opacity duration-300 group-hover:opacity-100" />
+                    <span className="relative text-sm font-medium text-muted-foreground transition-colors duration-300 group-hover:text-foreground">
+                      {item.label}
+                    </span>
+                  </>
+                )}
+              </Link>
+            ))}
           </nav>
         </div>
       </header>
@@ -176,23 +193,23 @@ export default function IntelligencePage() {
             <p className="mx-auto max-w-3xl text-xl text-muted-foreground">Explore how our AI-powered system works</p>
           </div>
 
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="glass-card grid w-full grid-cols-3 p-1">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="glass-card flex h-auto w-full items-center justify-between p-1 gap-2">
               <TabsTrigger
                 value="overview"
-                className="data-[state=active]:glass-card data-[state=active]:shadow-lg transition-all duration-300"
+                className="flex-1 py-3 text-center data-[state=active]:glass-card data-[state=active]:shadow-lg transition-all duration-300 cursor-pointer text-sm font-bold"
               >
                 Overview
               </TabsTrigger>
               <TabsTrigger
                 value="data"
-                className="data-[state=active]:glass-card data-[state=active]:shadow-lg transition-all duration-300"
+                className="flex-1 py-3 text-center data-[state=active]:glass-card data-[state=active]:shadow-lg transition-all duration-300 cursor-pointer text-sm font-bold"
               >
                 Data Pipeline
               </TabsTrigger>
               <TabsTrigger
                 value="risk"
-                className="data-[state=active]:glass-card data-[state=active]:shadow-lg transition-all duration-300"
+                className="flex-1 py-3 text-center data-[state=active]:glass-card data-[state=active]:shadow-lg transition-all duration-300 cursor-pointer text-sm font-bold"
               >
                 Risk Engine
               </TabsTrigger>
@@ -245,10 +262,10 @@ export default function IntelligencePage() {
                 <CardHeader>
                   <CardTitle className="text-foreground flex items-center gap-3">
                     <Database className="h-6 w-6 text-primary" />
-                    Data Pipeline
+                    Data Pipeline & Ingestion Engine
                   </CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    From raw data ingestion to feature engineering
+                    From sub-millisecond telemetry ingestion to high-dimensional feature engineering
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -257,27 +274,27 @@ export default function IntelligencePage() {
                     <div className="space-y-4">
                       {[
                         {
-                          step: "1. Ingestion",
-                          desc: "Real-time collection of market data, news, social sentiment, and alternative data sources",
+                          step: "1. Real-Time Ingestion",
+                          desc: "Our globally co-located ingestion clusters consume Level 2/3 orderbook telemetry, tick-by-tick market data, macro indexes, and sentiment indicators. Using high-throughput Apache Kafka pipelines, we capture millions of events per second with sub-millisecond timestamps.",
                         },
                         {
-                          step: "2. Transformation",
-                          desc: "Data cleaning, normalization, and transformation into standardized formats",
+                          step: "2. Stream Normalization",
+                          desc: "Raw, multi-source telemetry is passed through automated schema validators, parsed, and normalized. Anomalous ticks and data gaps are cleaned and adjusted dynamically to ensure the downstream models process completely sanitized inputs.",
                         },
                         {
-                          step: "3. Feature Engineering",
-                          desc: "Creation of sophisticated features using statistical and ML techniques",
+                          step: "3. High-Dimensional Feature Engineering",
+                          desc: "Our computation engine calculates thousands of mathematical and statistical features in real-time. This includes multi-timeframe volatility proxies (GARCH), orderflow imbalance, institutional liquidity sweeps, and cross-venue correlation matrices.",
                         },
                         {
-                          step: "4. Storage",
-                          desc: "Efficient storage in distributed databases optimized for time-series data",
+                          step: "4. Distributed Time-Series Storage",
+                          desc: "Engineered features and structured logs are written concurrently to ultra-low-latency distributed memory grids and optimized ClickHouse clusters, providing instant retrieval for live model inference and backtesting engines.",
                         },
                       ].map((item) => (
                         <div key={item.step} className="flex gap-4">
-                          <div className="bg-gradient-brand-blue rounded-lg px-3 py-1 text-sm font-bold text-primary-foreground">
+                          <div className="bg-gradient-brand-blue rounded-lg px-3 py-1 text-xs font-bold text-primary-foreground h-fit shrink-0">
                             {item.step}
                           </div>
-                          <p className="flex-1 text-muted-foreground">{item.desc}</p>
+                          <p className="flex-1 text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                         </div>
                       ))}
                     </div>
@@ -285,11 +302,11 @@ export default function IntelligencePage() {
 
                   <div className="glass-card rounded-2xl p-6">
                     <div className="mb-4 flex items-center justify-between">
-                      <span className="font-semibold text-foreground">Data Volume</span>
-                      <span className="text-2xl font-bold text-primary">10TB+ Daily</span>
+                      <span className="font-semibold text-foreground text-sm">Real-Time Ingestion Volatility</span>
+                      <span className="text-xl font-black text-primary">25TB+ Daily Telemetry</span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-muted">
-                      <div className="bg-gradient-brand-blue h-2 w-4/5 rounded-full"></div>
+                      <div className="bg-gradient-brand-blue h-2 w-11/12 rounded-full"></div>
                     </div>
                   </div>
                 </CardContent>
@@ -301,53 +318,51 @@ export default function IntelligencePage() {
                 <CardHeader>
                   <CardTitle className="text-foreground flex items-center gap-3">
                     <Lock className="h-6 w-6 text-primary" />
-                    Risk Management Engine
+                    Systematic Risk Auditing & Validation
                   </CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    Multi-layer risk controls operating in real-time
+                    Zero-trust mathematical checks and real-time position constraints
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="glass-card rounded-2xl p-6">
-                    <h4 className="mb-4 text-lg font-semibold text-foreground">Risk Control Framework</h4>
-                    <p className="mb-6 text-muted-foreground leading-relaxed">
-                      Our risk management system continuously monitors portfolio exposure, calculates Value-at-Risk
-                      (VaR), performs stress testing, and automatically adjusts positions to maintain optimal
-                      risk-reward profiles. Advanced scenario analysis protects capital during market dislocations.
+                    <h4 className="mb-4 text-lg font-semibold text-foreground">Zero-Trust Risk Control Framework</h4>
+                    <p className="mb-6 text-sm text-muted-foreground leading-relaxed">
+                      Sisko Capital prioritizes risk management over return generation. Our proprietary Risk Engine operates completely independently of the predictive models. Every order generated must pass a multi-layer validation audit. If an order breaches any portfolio constraint (leverage, exposure, sector correlation, or liquidity impact), the transaction is immediately gated and flagged for manual override.
                     </p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-3">
                     {[
-                      { label: "VaR Limit", value: "2%", color: "text-primary" },
-                      { label: "Max Drawdown", value: "8%", color: "text-accent" },
-                      { label: "Sharpe Ratio", value: "1.82", color: "text-primary" },
+                      { label: "1-Day 99% VaR Limit", value: "2.0%", color: "text-primary" },
+                      { label: "Absolute Drawdown Gate", value: "8.0%", color: "text-accent" },
+                      { label: "Beta to S&P 500", value: "0.12", color: "text-primary" },
                     ].map((metric) => (
                       <div key={metric.label} className="glass-card rounded-2xl p-6 text-center">
-                        <div className={`mb-2 text-3xl font-bold ${metric.color}`}>{metric.value}</div>
-                        <div className="text-sm text-muted-foreground">{metric.label}</div>
+                        <div className={`mb-2 text-2xl font-black ${metric.color}`}>{metric.value}</div>
+                        <div className="text-xs font-semibold text-muted-foreground">{metric.label}</div>
                       </div>
                     ))}
                   </div>
 
                   <div className="glass-card rounded-2xl p-6">
-                    <h5 className="mb-3 font-semibold text-foreground">Real-Time Monitoring</h5>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-primary"></div>
-                        Position sizing and leverage constraints
+                    <h5 className="mb-3 font-semibold text-foreground">Real-Time Auditing Modules</h5>
+                    <ul className="space-y-3 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-3">
+                        <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0"></div>
+                        <p><strong>Position & Leverage Gating:</strong> Automatically monitors individual position sizing and total portfolio leverage, preventing excessive margin exposure.</p>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-accent"></div>
-                        Correlation monitoring and diversification checks
+                      <li className="flex items-start gap-3">
+                        <div className="h-2 w-2 rounded-full bg-accent mt-1.5 shrink-0"></div>
+                        <p><strong>Correlation Collapse Protection:</strong> Calculates live asset covariance and correlation structures. Automatically reduces sizes if diversification benefits degrade during regime shifts.</p>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-primary"></div>
-                        Liquidity risk assessment and management
+                      <li className="flex items-start gap-3">
+                        <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0"></div>
+                        <p><strong>Liquidity & Slippage Impact Audit:</strong> Measures order size against current orderbook depth (L2/L3) to prevent market impact and execution slippage.</p>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-accent"></div>
-                        Market impact analysis for order execution
+                      <li className="flex items-start gap-3">
+                        <div className="h-2 w-2 rounded-full bg-accent mt-1.5 shrink-0"></div>
+                        <p><strong>Black Swan Scenario Analysis:</strong> Simulates historical dislocations (e.g., 2008 Lehman collapse, 2020 pandemic crash) every 60 seconds to stress-test capital health.</p>
                       </li>
                     </ul>
                   </div>

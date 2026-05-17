@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Brain, BarChart3, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import PerformanceChart from "@/components/performance-chart"
 
 export default function Home() {
   return (
@@ -24,27 +25,25 @@ export default function Home() {
           </Link>
 
           <nav className="hidden gap-2 md:flex">
-            {["About", "Our Approach", "Philosophy", "How It Works", "Contact"].map((item) => (
+            {[
+              { label: "About", href: "/#about" },
+              { label: "Our Approach", href: "/#our-approach" },
+              { label: "Philosophy", href: "/philosophy" },
+              { label: "How It Works", href: "/how-it-works" },
+              { label: "Contact", href: "/#contact" },
+              { label: "Intelligence", href: "/intelligence" },
+            ].map((item) => (
               <Link
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
+                key={item.label}
+                href={item.href}
                 className="group relative rounded-full px-4 py-2 transition-all duration-300 hover:scale-105"
               >
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 backdrop-blur-xl transition-opacity duration-300 group-hover:opacity-100 text-transparent" />
-                <span className="relative text-sm font-medium transition-colors duration-300 group-hover:text-foreground text-slate-300">
-                  {item}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 backdrop-blur-xl transition-opacity duration-300 group-hover:opacity-100" />
+                <span className="relative text-sm font-medium transition-colors duration-300 group-hover:text-slate-100 text-slate-300">
+                  {item.label}
                 </span>
               </Link>
             ))}
-            <Link
-              href="/intelligence"
-              className="group relative rounded-full px-4 py-2 transition-all duration-300 hover:scale-105"
-            >
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 backdrop-blur-xl transition-opacity duration-300 group-hover:opacity-100 text-transparent" />
-              <span className="relative text-sm font-medium transition-colors duration-300 group-hover:text-foreground text-slate-300">
-                Intelligence
-              </span>
-            </Link>
           </nav>
         </div>
       </header>
@@ -95,50 +94,7 @@ export default function Home() {
             <div className="relative">
               <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl" />
               <div className="relative glass-card rounded-[3rem] p-8">
-                <div className="space-y-6">
-                  <div className="flex h-48 items-center justify-center">
-                    <svg className="h-full w-full text-primary/50" viewBox="0 0 100 50" fill="none">
-                      <path
-                        d="M 0,40 L 20,35 L 40,25 L 60,30 L 80,20 L 100,15"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        fill="none"
-                      />
-                      <path
-                        d="M 0,40 L 20,35 L 40,25 L 60,30 L 80,20 L 100,15 L 100,50 L 0,50 Z"
-                        fill="url(#gradient)"
-                        opacity="0.3"
-                      />
-                      <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="var(--color-primary)" />
-                          <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="glass-card rounded-2xl p-4 text-center transition-transform duration-300 hover:scale-105">
-                      <div className="bg-gradient-brand-blue bg-clip-text text-3xl font-bold text-foreground">27%</div>
-                      <div className="mt-2 text-xs text-muted-foreground">Annual Return</div>
-                    </div>
-
-                    <div className="glass-card rounded-2xl p-4 text-center transition-transform duration-300 hover:scale-105">
-                      <div className="bg-gradient-brand-purple bg-clip-text text-3xl font-bold text-foreground">
-                        0.82
-                      </div>
-                      <div className="mt-2 text-xs text-muted-foreground">Sharpe Ratio</div>
-                    </div>
-
-                    <div className="glass-card rounded-2xl p-4 text-center transition-transform duration-300 hover:scale-105">
-                      <div className="bg-gradient-brand-indigo bg-clip-text text-3xl font-bold text-foreground">
-                        12%
-                      </div>
-                      <div className="mt-2 text-xs text-muted-foreground">Volatility</div>
-                    </div>
-                  </div>
-                </div>
+                <PerformanceChart />
               </div>
             </div>
           </div>
@@ -275,6 +231,51 @@ export default function Home() {
                 </div>
                 <span>sisko@duck.com</span>
               </div>
+            </div>
+          </div>
+
+          {/* Institutional FAQ */}
+          <div className="mx-auto max-w-3xl mt-16 space-y-6">
+            <h3 className="text-2xl font-bold text-center text-foreground mb-8">
+              Detailed FAQ & Institutional Disclosures
+            </h3>
+            
+            <div className="space-y-4">
+              {[
+                {
+                  q: "What is the liquidity & redemption structure?",
+                  a: "Sisko Capital offers institutional investors monthly liquidity with a standard 45-day written notice period. There are no lock-up periods or gating provisions under normal market conditions, ensuring maximum flexibility and transparency."
+                },
+                {
+                  q: "What fee structure does Sisko Capital utilize?",
+                  a: "We operate under a standard '2 and 20' institutional model: a 2.0% annualized management fee (charged monthly) and a 20.0% performance allocation, subject to a strict High-Water Mark (HWM) clause to align GP-LP incentives perfectly."
+                },
+                {
+                  q: "What risk management & leverage parameters are enforced?",
+                  a: "Our real-time risk engine enforces a hard 8.0% maximum portfolio drawdown limit, maintains standard Value-at-Risk (VaR) under 2.0% on a 1-day 99% confidence interval, and caps absolute leverage at 3.0x net exposure."
+                },
+                {
+                  q: "How does the AI model adapt to regime shifts?",
+                  a: "Our ensemble engine operates with continuous telemetry feedback loops, monitoring realized volatility and correlation shifts. Upon detecting a regime transition, the model dynamically shifts allocations to protect capital and capture systematic anomalies."
+                },
+                {
+                  q: "What is the minimum institutional commitment?",
+                  a: "To maintain standard operational efficiency, Sisko Capital accepts qualified institutional buyers and accredited investors with a minimum initial capital commitment of USD 250,000."
+                }
+              ].map((faq, idx) => (
+                <details 
+                  key={idx} 
+                  className="glass-card group rounded-2xl border border-border p-5 cursor-pointer open:border-primary/50 transition-all duration-350"
+                >
+                  <summary className="flex items-center justify-between text-base font-semibold text-foreground list-none select-none">
+                    <span>{faq.q}</span>
+                    <span className="text-primary font-light text-xl transition-transform duration-350 group-open:rotate-45">+</span>
+                  </summary>
+                  <p className="text-sm leading-relaxed text-muted-foreground mt-3 pt-3 border-t border-border/50 transition-all duration-350">
+                    {faq.a}
+                  </p>
+                </details>
+              ))}
             </div>
           </div>
         </div>
