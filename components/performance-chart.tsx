@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,19 +26,6 @@ ChartJS.register(
 )
 
 export default function PerformanceChart() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
-        Initializing Performance Engine...
-      </div>
-    )
-  }
 
   const data = {
     labels: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025", "Q1 2026", "Q2 2026"],

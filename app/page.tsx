@@ -2,7 +2,16 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Brain, BarChart3, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import PerformanceChart from "@/components/performance-chart"
+import dynamic from "next/dynamic"
+
+const PerformanceChart = dynamic(() => import("@/components/performance-chart"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+      Initializing Performance Engine...
+    </div>
+  ),
+})
 
 export default function Home() {
   return (
