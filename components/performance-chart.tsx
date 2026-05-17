@@ -1,3 +1,5 @@
+
+
 "use client"
 
 import React from "react"
@@ -82,10 +84,10 @@ export default function PerformanceChart() {
             <circle cx="160" cy="144" r="5" fill="#3b82f6" stroke="#1e293b" strokeWidth="2.5" className="hover:r-7 transition-all duration-300 cursor-pointer" />
             <circle cx="240" cy="116" r="5" fill="#3b82f6" stroke="#1e293b" strokeWidth="2.5" className="hover:r-7 transition-all duration-300 cursor-pointer" />
             <circle cx="320" cy="78" r="5" fill="#3b82f6" stroke="#1e293b" strokeWidth="2.5" className="hover:r-7 transition-all duration-300 cursor-pointer" />
-            
+
             {/* Final Highlight Point */}
-            <g>
-              <circle cx="400" cy="36" r="8" fill="#3b82f6" opacity="0.3" className="animate-pulse" />
+            <g className="animate-bounce">
+              <circle cx="400" cy="36" r="8" fill="#3b82f6" opacity="0.3" className="animate-ping" />
               <circle cx="400" cy="36" r="6" fill="#3b82f6" stroke="#fff" strokeWidth="3" className="drop-shadow-[0_0_15px_rgba(59,130,246,1)]" />
             </g>
           </svg>
@@ -109,14 +111,14 @@ export default function PerformanceChart() {
           { label: "Max Drawdown", value: "-9.7%", icon: Shield, color: "text-emerald-400", bg: "bg-emerald-400/10" },
           { label: "Beta to S&P", value: "0.12", icon: BarChart2, color: "text-amber-400", bg: "bg-amber-400/10" }
         ].map((metric) => (
-          <div key={metric.label} className="glass-card rounded-[1.5rem] p-5 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl group border border-border/50 flex flex-col justify-between min-h-[120px]">
-            <div className="flex flex-col gap-2">
-              <div className={`w-fit p-2 rounded-xl ${metric.bg} transition-colors duration-300 group-hover:bg-opacity-20`}>
+          <div key={metric.label} className="glass-card rounded-[1.5rem] p-5 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl group border border-border/50">
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`p-2 rounded-xl ${metric.bg} transition-colors duration-300 group-hover:bg-opacity-20`}>
                 <metric.icon className={`h-5 w-5 ${metric.color}`} />
               </div>
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wide leading-tight break-words">{metric.label}</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight mt-2">
+            <div className="text-3xl font-black text-foreground tracking-tight">
               {metric.value}
             </div>
           </div>

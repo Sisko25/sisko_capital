@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function IntelligencePage() {
-  const [activeTab, setActiveTab] = useState("overview")
   return (
     <div className="flex min-h-screen flex-col">
       {/* ─────────────────────────── NAVBAR ─────────────────────────── */}
@@ -193,7 +192,7 @@ export default function IntelligencePage() {
             <p className="mx-auto max-w-3xl text-xl text-muted-foreground">Explore how our AI-powered system works</p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs defaultValue="overview" className="w-full">
             <TabsList className="glass-card flex h-auto w-full items-center justify-between p-1 gap-2">
               <TabsTrigger
                 value="overview"
