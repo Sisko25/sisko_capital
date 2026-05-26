@@ -5,10 +5,22 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/stockscreen',
+        destination: 'https://siskostock.netlify.app/stockscreen',
+      },
+      {
+        source: '/stockscreen/:path*',
+        destination: 'https://siskostock.netlify.app/stockscreen/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {
-        source: '/(.*)', // Applies to all routes
+        source: '/(.*)',
         headers: [
           {
             key: 'Content-Security-Policy',
