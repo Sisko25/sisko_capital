@@ -54,15 +54,15 @@ body {
 
 /* 3D Satellite Earth Globe */
 @keyframes rotate-earth {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
 }
 .earth-globe {
-  width: 420px;
-  height: 420px;
+  width: 380px;
+  height: 380px;
   border-radius: 50%;
-  background: url('/images/earth-texture.jpg') repeat-x center;
-  background-size: 200% 100%;
+  background: url('/images/earth-texture.jpg') repeat-x top;
+  background-size: 200% 200%;
   animation: rotate-earth 60s linear infinite;
   box-shadow:
     inset -40px -20px 80px rgba(0, 0, 0, 0.85),

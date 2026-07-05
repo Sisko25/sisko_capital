@@ -1,4 +1,5 @@
 import React from "react"
+import Image from "next/image"
 
 export default function Home() {
   return (
@@ -68,6 +69,17 @@ export default function Home() {
           SISKO AEROSPACE LLP
         </p>
 
+      </div>
+
+      {/* NDP 61 Badge - Bottom of Page */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+        <Image
+          src="/images/ndp61.png"
+          alt="NDP 61 - Majulah Singapura, Go Beyond!"
+          width={120}
+          height={120}
+          className="rounded-lg opacity-90"
+        />
       </div>
     </main>
   )
