@@ -4,6 +4,17 @@ import Image from "next/image"
 export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black text-[#00ff41]">
+      {/* Sisko Aerospace Logo - Top Right Corner */}
+      <div className="absolute top-6 right-6 z-20 hidden sm:block">
+        <Image
+          src="/images/sisko-aerospace-logo.jpg"
+          alt="Sisko Aerospace Logo"
+          width={120}
+          height={120}
+          className="rounded-xl opacity-90 border border-[#00ff41]/20 hover:border-[#00ff41]/50 transition-all duration-300 invert"
+        />
+      </div>
+
       {/* Starfield Background */}
       <div className="absolute inset-0 stars opacity-50 z-0"></div>
 
