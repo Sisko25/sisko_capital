@@ -12,24 +12,8 @@ export default function Home() {
       {/* Background 3D Globe and Satellite Orbit */}
       <div className="absolute inset-0 z-0 flex items-center justify-center opacity-70 pointer-events-none perspective-[1000px]">
         
-        {/* 3D Wireframe Globe */}
-        <div className="relative w-[400px] h-[400px] animate-globe">
-          {/* Latitude Lines */}
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateX(0deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateX(30deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateX(60deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateX(90deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateX(120deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateX(150deg)"></div>
-          
-          {/* Longitude Lines */}
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateY(0deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateY(30deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateY(60deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateY(90deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateY(120deg)"></div>
-          <div className="absolute inset-0 border border-[#00ff41]/40 rounded-full transform rotateY(150deg)"></div>
-        </div>
+        {/* 3D Satellite Earth Globe */}
+        <div className="earth-globe"></div>
 
         {/* Satellite Orbit Path */}
         <div className="absolute w-[800px] h-[800px] rounded-full border border-dashed border-[#00ff41]/40 animate-orbit">
