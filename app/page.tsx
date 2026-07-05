@@ -4,8 +4,8 @@ import Image from "next/image"
 export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black text-[#00ff41]">
-      {/* Sisko Aerospace Logo - Top Right Corner */}
-      <div className="absolute top-6 right-6 z-20 hidden sm:block">
+      {/* Sisko Aerospace Logo - Top Left Corner */}
+      <div className="absolute top-6 left-6 z-20 hidden sm:block">
         <Image
           src="/images/sisko-aerospace-logo.jpg"
           alt="Sisko Aerospace Logo"
@@ -51,16 +51,16 @@ export default function Home() {
           </svg>
         </div>
 
-        {/* HUD Data Corners */}
-        <div className="absolute top-10 left-10 font-mono text-xs opacity-70">
-          <p>SYS.OP.OK</p>
+        {/* HUD Data Corner (Consolidated on the Right) */}
+        <div className="absolute top-10 right-10 font-mono text-xs opacity-70 text-right">
+          <p className="text-[#00ff41] font-bold">SYS.OP.OK</p>
           <p>ORBIT: LEO</p>
           <p>ALT: 400 KM</p>
-        </div>
-        <div className="absolute top-10 right-10 font-mono text-xs opacity-70 text-right">
-          <p>SAT.LOCKED</p>
-          <p>TRAJ: STABLE</p>
-          <p>GEO-UPLINK: SECURE</p>
+          <div className="mt-4 border-t border-[#00ff41]/20 pt-4">
+            <p className="text-[#00ff41]/80">SAT.LOCKED</p>
+            <p>TRAJ: STABLE</p>
+            <p>GEO-UPLINK: SECURE</p>
+          </div>
         </div>
       </div>
 
