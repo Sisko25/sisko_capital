@@ -6,26 +6,41 @@ export default function Home() {
       {/* CRT Scanline Overlay */}
       <div className="scanlines"></div>
 
-      {/* Background Drone Animation Overlay */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20 pointer-events-none">
+      {/* Background 3D Globe and Satellite Orbit */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-30 pointer-events-none perspective-[1000px]">
         
-        {/* Radar Ring */}
-        <div className="absolute h-[600px] w-[600px] rounded-full border border-[#2e3b2e] opacity-50"></div>
-        <div className="absolute h-[400px] w-[400px] rounded-full border border-[#2e3b2e] opacity-50"></div>
-        <div className="absolute h-[200px] w-[200px] rounded-full border border-[#2e3b2e] opacity-50"></div>
-        
-        {/* Radar Sweep */}
-        <div className="absolute h-[600px] w-[600px] rounded-full animate-radar origin-center">
-          <div className="h-[300px] w-[300px] bg-gradient-to-tr from-transparent via-transparent to-[#00ff41]/20 rounded-tr-full border-r border-t border-[#00ff41]/40"></div>
+        {/* 3D Wireframe Globe */}
+        <div className="relative w-[400px] h-[400px] animate-globe">
+          {/* Latitude Lines */}
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateX(0deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateX(30deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateX(60deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateX(90deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateX(120deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateX(150deg)"></div>
+          
+          {/* Longitude Lines */}
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateY(0deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateY(30deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateY(60deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateY(90deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateY(120deg)"></div>
+          <div className="absolute inset-0 border border-[#2e3b2e] rounded-full transform rotateY(150deg)"></div>
         </div>
 
-        {/* Crosshairs */}
-        <div className="absolute h-[800px] w-[1px] bg-[#2e3b2e]"></div>
-        <div className="absolute h-[1px] w-[800px] bg-[#2e3b2e]"></div>
+        {/* Satellite Orbit Path */}
+        <div className="absolute w-[800px] h-[800px] rounded-full border border-dashed border-[#00ff41]/40 animate-orbit">
+          {/* Satellite Object */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#00ff41] rounded-full shadow-[0_0_15px_#00ff41]">
+            {/* Satellite Solar Panels */}
+            <div className="absolute top-1/2 -left-4 w-3 h-2 bg-[#00ff41] -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -right-4 w-3 h-2 bg-[#00ff41] -translate-y-1/2"></div>
+          </div>
+        </div>
 
-        {/* The "Drone" SVG graphic floating */}
-        <div className="absolute animate-drone text-[#00ff41]">
-          <svg width="120" height="120" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5">
+        {/* The "Drone" SVG flying across screen */}
+        <div className="absolute animate-drone-flight text-[#00ff41]">
+          <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5">
             <polygon points="50,10 90,40 50,90 10,40" strokeDasharray="4 2" />
             <circle cx="50" cy="45" r="15" strokeDasharray="2 4" />
             <circle cx="50" cy="45" r="2" fill="currentColor" className="animate-pulse" />
@@ -40,18 +55,18 @@ export default function Home() {
         {/* HUD Data Corners */}
         <div className="absolute top-10 left-10 font-mono text-xs opacity-70">
           <p>SYS.OP.OK</p>
-          <p>ALT: 42,000 FT</p>
-          <p>SPD: MACH 2.4</p>
+          <p>ORBIT: LEO</p>
+          <p>ALT: 400 KM</p>
         </div>
         <div className="absolute top-10 right-10 font-mono text-xs opacity-70 text-right">
-          <p>TRGT.LOCKED</p>
-          <p>AZM: 142.4°</p>
-          <p>UAV-X9 LINK: SECURE</p>
+          <p>SAT.LOCKED</p>
+          <p>TRAJ: STABLE</p>
+          <p>GEO-UPLINK: SECURE</p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-8">
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-8 mt-12">
         
         {/* Main Heading */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-widest text-[#00ff41] glitch-hover drop-shadow-[0_0_15px_rgba(0,255,65,0.4)]">
@@ -62,14 +77,9 @@ export default function Home() {
         <div className="w-24 h-1 bg-[#00ff41] shadow-[0_0_10px_#00ff41] my-4"></div>
 
         {/* Sub Heading */}
-        <p className="text-xl md:text-2xl font-mono tracking-[0.2em] text-[#00ff41]/80">
+        <p className="text-xl md:text-2xl font-mono tracking-[0.2em] text-[#00ff41]/80 bg-black/50 px-4 py-2 backdrop-blur-sm rounded">
           SISKO AEROSPACE LLP
         </p>
-
-        {/* Terminal/Command prompt decoration */}
-        <div className="mt-16 font-mono text-xs text-[#00ff41]/60 animate-pulse">
-          &gt; INITIATING STEALTH PROTOCOL...
-        </div>
 
       </div>
     </main>
