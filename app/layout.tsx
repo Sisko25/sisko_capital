@@ -6,8 +6,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sisko Capital - AI-Powered Hedge Fund",
-  description: "AI-powered investing for superior returns",
+  title: "Sisko Aerospace LLP | Coming Soon",
+  description: "Sisko on a whole new level. Advanced aerospace systems.",
     generator: 'v0.app'
 }
 

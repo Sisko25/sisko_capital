@@ -1,380 +1,77 @@
-import Link from "next/link"
-import Image from "next/image"
-import { ArrowRight, Brain, BarChart3, Shield, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import PerformanceChart from "@/components/performance-chart"
+import React from "react"
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
-      {/* Fixed Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/20 backdrop-blur-xl">
-        <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl transition-all duration-500 group-hover:bg-primary/40" />
-              <Image
-                src="/images/sisko-capital-logo-final.png"
-                alt="Sisko Capital"
-                width={48}
-                height={48}
-                className="relative h-12 w-12 object-contain"
-              />
-            </div>
-            <span className="text-2xl font-bold text-foreground">Sisko Capital</span>
-          </Link>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black text-[#00ff41]">
+      {/* CRT Scanline Overlay */}
+      <div className="scanlines"></div>
 
-          <nav className="hidden gap-2 md:flex">
-            {[
-              { label: "About", href: "/#about" },
-              { label: "Our Approach", href: "/#our-approach" },
-              { label: "Philosophy", href: "/philosophy" },
-              { label: "How It Works", href: "/how-it-works" },
-              { label: "Contact", href: "/#contact" },
-              { label: "Intelligence", href: "/intelligence" },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="group relative rounded-full px-4 py-2 transition-all duration-300 hover:scale-105"
-              >
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 backdrop-blur-xl transition-opacity duration-300 group-hover:opacity-100" />
-                <span className="relative text-sm font-medium transition-colors duration-300 group-hover:text-slate-100 text-slate-300">
-                  {item.label}
-                </span>
-              </Link>
-            ))}
-          </nav>
+      {/* Background Drone Animation Overlay */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20 pointer-events-none">
+        
+        {/* Radar Ring */}
+        <div className="absolute h-[600px] w-[600px] rounded-full border border-[#2e3b2e] opacity-50"></div>
+        <div className="absolute h-[400px] w-[400px] rounded-full border border-[#2e3b2e] opacity-50"></div>
+        <div className="absolute h-[200px] w-[200px] rounded-full border border-[#2e3b2e] opacity-50"></div>
+        
+        {/* Radar Sweep */}
+        <div className="absolute h-[600px] w-[600px] rounded-full animate-radar origin-center">
+          <div className="h-[300px] w-[300px] bg-gradient-to-tr from-transparent via-transparent to-[#00ff41]/20 rounded-tr-full border-r border-t border-[#00ff41]/40"></div>
         </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="relative px-6 pb-20 pt-32 md:pb-32 md:pt-40">
-        <div className="container mx-auto">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Left Column - Text */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-2xl backdrop-blur-xl">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-card-foreground">Powered by Advanced AI</span>
-              </div>
+        {/* Crosshairs */}
+        <div className="absolute h-[800px] w-[1px] bg-[#2e3b2e]"></div>
+        <div className="absolute h-[1px] w-[800px] bg-[#2e3b2e]"></div>
 
-              <h1 className="text-5xl font-bold leading-tight md:text-6xl lg:text-7xl">
-                <span className="mb-2 block text-foreground">AI-Powered Investing</span>
-                <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  for Superior Returns
-                </span>
-              </h1>
-
-              <p className="max-w-2xl text-xl leading-relaxed text-muted-foreground">
-                Sisko Capital leverages advanced AI algorithms to identify market inefficiencies and generate alpha in
-                all market conditions.
-              </p>
-
-              <div className="flex flex-col gap-4 sm:flex-row">
-                <Button size="lg" className="rounded-full px-8 py-6 text-lg shadow-lg shadow-primary/50" asChild>
-                  <Link href="#about" className="flex items-center gap-2">
-                    Learn More
-                    <ArrowRight className="h-5 w-5" />
-                  </Link>
-                </Button>
-
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-2 px-8 py-6 text-lg backdrop-blur-xl bg-transparent"
-                  asChild
-                >
-                  <Link href="#contact">Contact Us</Link>
-                </Button>
-              </div>
-            </div>
-
-            {/* Right Column - Stats Card */}
-            <div className="relative">
-              <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl" />
-              <div className="relative glass-card rounded-[3rem] p-8">
-                <PerformanceChart />
-              </div>
-            </div>
-          </div>
+        {/* The "Drone" SVG graphic floating */}
+        <div className="absolute animate-drone text-[#00ff41]">
+          <svg width="120" height="120" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <polygon points="50,10 90,40 50,90 10,40" strokeDasharray="4 2" />
+            <circle cx="50" cy="45" r="15" strokeDasharray="2 4" />
+            <circle cx="50" cy="45" r="2" fill="currentColor" className="animate-pulse" />
+            <line x1="50" y1="10" x2="50" y2="90" />
+            <line x1="10" y1="40" x2="90" y2="40" />
+            {/* Thrusters / Details */}
+            <rect x="25" y="50" width="10" height="20" transform="rotate(-30 30 60)" />
+            <rect x="65" y="50" width="10" height="20" transform="rotate(30 70 60)" />
+          </svg>
         </div>
-      </section>
 
-      {/* About Section */}
-      <section id="about" className="px-6 py-20 md:py-32">
-        <div className="container mx-auto">
-          <div className="mb-16 space-y-6 text-center">
-            <h2 className="text-4xl font-bold text-foreground md:text-5xl lg:text-6xl">About Sisko Capital</h2>
-            <p className="mx-auto max-w-3xl text-xl text-muted-foreground">
-              We are a quantitative hedge fund that uses artificial intelligence to make investment decisions.
-            </p>
-          </div>
-
-          <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2">
-            <div className="glass-card space-y-6 rounded-[2rem] p-8 transition-transform duration-500 hover:scale-105">
-              <h3 className="bg-gradient-brand-blue bg-clip-text text-3xl font-bold bg-foreground text-foreground">
-                Our Mission
-              </h3>
-              <p className="text-lg leading-relaxed text-muted-foreground">
-                To deliver consistent, market-beating returns by leveraging cutting-edge AI technology to identify and
-                exploit market inefficiencies.
-              </p>
-
-              <h3 className="bg-gradient-brand-purple bg-clip-text text-3xl font-bold text-foreground">Our Vision</h3>
-              <p className="text-lg leading-relaxed text-muted-foreground">
-                To become the leading AI-powered hedge fund, setting new standards for quantitative investing in the
-                digital age.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Founded", value: "2025", gradient: "bg-gradient-brand-blue" },
-                { label: "AUM", value: "$xM+", gradient: "bg-gradient-brand-purple" },
-                { label: "Team", value: "10+", gradient: "bg-gradient-brand-indigo" },
-                { label: "Markets", value: "Global", gradient: "bg-gradient-brand-teal" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="glass-card rounded-3xl p-6 text-center transition-transform duration-500 hover:scale-105"
-                >
-                  <div className={`mb-2 text-black ${item.gradient} bg-clip-text text-4xl font-bold text-foreground`}>
-                    {item.value}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* HUD Data Corners */}
+        <div className="absolute top-10 left-10 font-mono text-xs opacity-70">
+          <p>SYS.OP.OK</p>
+          <p>ALT: 42,000 FT</p>
+          <p>SPD: MACH 2.4</p>
         </div>
-      </section>
-
-      {/* Our Approach */}
-      <section id="our-approach" className="px-6 py-20 md:py-32">
-        <div className="container mx-auto">
-          <div className="mb-16 space-y-6 text-center">
-            <h2 className="text-4xl font-bold text-foreground md:text-5xl lg:text-6xl">Our Investment Approach</h2>
-            <p className="mx-auto max-w-3xl text-xl text-muted-foreground">
-              We combine AI, machine learning, and traditional financial analysis to create a robust investment
-              strategy.
-            </p>
-          </div>
-
-          <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
-            {[
-              {
-                icon: Brain,
-                title: "AI-Driven Analysis",
-                description:
-                  "Our proprietary AI models analyze vast amounts of market data to identify patterns and opportunities.",
-                gradient: "bg-gradient-brand-blue",
-              },
-              {
-                icon: BarChart3,
-                title: "Quantitative Strategies",
-                description:
-                  "We deploy multiple quantitative strategies across different asset classes and time horizons.",
-                gradient: "bg-gradient-brand-purple",
-              },
-              {
-                icon: Shield,
-                title: "Risk Management",
-                description: "Sophisticated risk models protect capital and ensure consistent performance.",
-                gradient: "bg-gradient-brand-indigo",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="glass-card group rounded-[2rem] p-8 transition-all duration-500 hover:scale-105"
-              >
-                <div
-                  className={`mb-6 inline-flex rounded-2xl ${item.gradient} p-4 transition-transform duration-500 group-hover:scale-110`}
-                >
-                  <item.icon className="h-8 w-8 text-primary-foreground" />
-                </div>
-                <h3 className="mb-4 text-2xl font-bold text-foreground">{item.title}</h3>
-                <p className="leading-relaxed text-muted-foreground">{item.description}</p>
-              </div>
-            ))}
-          </div>
+        <div className="absolute top-10 right-10 font-mono text-xs opacity-70 text-right">
+          <p>TRGT.LOCKED</p>
+          <p>AZM: 142.4°</p>
+          <p>UAV-X9 LINK: SECURE</p>
         </div>
-      </section>
+      </div>
 
-      {/* Contact Section */}
-      <section id="contact" className="px-6 py-20 md:py-32">
-        <div className="container mx-auto">
-          <div className="mb-16 space-y-6 text-center">
-            <h2 className="text-4xl font-bold text-foreground md:text-5xl lg:text-6xl">Contact Us</h2>
-            <p className="mx-auto max-w-3xl text-xl text-muted-foreground">
-              Interested in learning more about Sisko Capital? Get in touch with our team.
-            </p>
-          </div>
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-8">
+        
+        {/* Main Heading */}
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-widest text-[#00ff41] glitch-hover drop-shadow-[0_0_15px_rgba(0,255,65,0.4)]">
+          Sisko on a whole new level,<br className="hidden md:block"/> coming soon
+        </h1>
 
-          <div className="glass-card mx-auto max-w-2xl rounded-[2rem] p-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-foreground">
-                <div className="bg-gradient-brand-blue rounded-xl p-3">
-                  <svg
-                    className="h-5 w-5 text-primary-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <span>sisko@duck.com</span>
-              </div>
-            </div>
-          </div>
+        {/* Separator Line */}
+        <div className="w-24 h-1 bg-[#00ff41] shadow-[0_0_10px_#00ff41] my-4"></div>
 
-          {/* Institutional FAQ */}
-          <div className="mx-auto max-w-3xl mt-16 space-y-6">
-            <h3 className="text-2xl font-bold text-center text-foreground mb-8">
-              Detailed FAQ & Institutional Disclosures
-            </h3>
-            
-            <div className="space-y-4">
-              {[
-                {
-                  q: "What is the liquidity & redemption structure?",
-                  a: "Sisko Capital offers institutional investors monthly liquidity with a standard 45-day written notice period. There are no lock-up periods or gating provisions under normal market conditions, ensuring maximum flexibility and transparency."
-                },
-                {
-                  q: "What fee structure does Sisko Capital utilize?",
-                  a: "We operate under a standard '2 and 20' institutional model: a 2.0% annualized management fee (charged monthly) and a 20.0% performance allocation, subject to a strict High-Water Mark (HWM) clause to align GP-LP incentives perfectly."
-                },
-                {
-                  q: "What risk management & leverage parameters are enforced?",
-                  a: "Our real-time risk engine enforces a hard 8.0% maximum portfolio drawdown limit, maintains standard Value-at-Risk (VaR) under 2.0% on a 1-day 99% confidence interval, and caps absolute leverage at 3.0x net exposure."
-                },
-                {
-                  q: "How does the AI model adapt to regime shifts?",
-                  a: "Our ensemble engine operates with continuous telemetry feedback loops, monitoring realized volatility and correlation shifts. Upon detecting a regime transition, the model dynamically shifts allocations to protect capital and capture systematic anomalies."
-                },
-                {
-                  q: "What is the minimum institutional commitment?",
-                  a: "To maintain standard operational efficiency, Sisko Capital accepts qualified institutional buyers and accredited investors with a minimum initial capital commitment of USD 250,000."
-                }
-              ].map((faq, idx) => (
-                <details 
-                  key={idx} 
-                  className="glass-card group rounded-2xl border border-border p-5 cursor-pointer open:border-primary/50 transition-all duration-350"
-                >
-                  <summary className="flex items-center justify-between text-base font-semibold text-foreground list-none select-none">
-                    <span>{faq.q}</span>
-                    <span className="text-primary font-light text-xl transition-transform duration-350 group-open:rotate-45">+</span>
-                  </summary>
-                  <p className="text-sm leading-relaxed text-muted-foreground mt-3 pt-3 border-t border-border/50 transition-all duration-350">
-                    {faq.a}
-                  </p>
-                </details>
-              ))}
-            </div>
-          </div>
+        {/* Sub Heading */}
+        <p className="text-xl md:text-2xl font-mono tracking-[0.2em] text-[#00ff41]/80">
+          SISKO AEROSPACE LLP
+        </p>
+
+        {/* Terminal/Command prompt decoration */}
+        <div className="mt-16 font-mono text-xs text-[#00ff41]/60 animate-pulse">
+          &gt; INITIATING STEALTH PROTOCOL...
         </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-background/20 backdrop-blur-xl">
-        <div className="container mx-auto px-6 py-12">
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Image
-                  src="/images/sisko-capital-logo-final.png"
-                  alt="Sisko Capital"
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 object-contain"
-                />
-                <span className="text-xl font-bold text-foreground">Sisko Capital</span>
-              </div>
-              <p className="text-sm text-muted-foreground">AI-powered investing for superior returns.</p>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <p>UEN: T25LL0878B</p>
-                <p>177 Tanjong Rhu Road, Singapore</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-4 md:justify-center">
-              {["Privacy Policy", "Terms of Service", "Disclaimer", "Company Policy"].map((item) => (
-                <Link
-                  key={item}
-                  href={`/${item.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {item}
-                </Link>
-              ))}
-            </div>
-
-            <div className="flex gap-4 md:justify-end">
-              <Link
-                href="https://www.instagram.com/siskocapital"
-                target="_blank"
-                className="glass-card rounded-xl p-3 transition-all duration-300 hover:scale-110"
-              >
-                <svg
-                  className="h-5 w-5 text-muted-foreground transition-colors hover:text-foreground"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <rect
-                    width="20"
-                    height="20"
-                    x="2"
-                    y="2"
-                    rx="5"
-                    ry="5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <path
-                    d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </Link>
-
-              <Link
-                href="https://www.linkedin.com/company/siskomore-capital"
-                target="_blank"
-                className="glass-card rounded-xl p-3 transition-all duration-300 hover:scale-110"
-              >
-                <svg
-                  className="h-5 w-5 text-muted-foreground transition-colors hover:text-foreground"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <rect width="4" height="12" x="2" y="9" fill="none" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="4" cy="4" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-8 border-t border-border pt-8 text-center">
-            <p className="text-sm text-muted-foreground">© 2025 Sisko Capital. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </main>
   )
 }
