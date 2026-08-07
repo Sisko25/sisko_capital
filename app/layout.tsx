@@ -2,13 +2,14 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import Header from "@/components/header"
+import Footer from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sisko Aerospace LLP | Coming Soon",
-  description: "Sisko on a whole new level. Advanced aerospace systems.",
-    generator: 'v0.app'
+  title: "Sisko Aerospace LLP | AI Detection Systems",
+  description: "Sisko Aerospace LLP develops AVIARS — Autonomous Video & Signal Aerial Recognition Software — for next-generation aerial intelligence and defense.",
 }
 
 export default function RootLayout({
@@ -17,8 +18,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen`}>
+        <Header />
+        <main className="pt-16">{children}</main>
+        <Footer />
+      </body>
     </html>
   )
 }

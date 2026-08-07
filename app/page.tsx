@@ -1,97 +1,117 @@
-import React from "react"
-import Image from "next/image"
+import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black text-[#00ff41]">
-      {/* Sisko Aerospace Logo - Top Left Corner */}
-      <div className="absolute top-6 left-6 z-20 hidden sm:block">
-        <Image
-          src="/images/sisko-aerospace-logo.jpg"
-          alt="Sisko Aerospace Logo"
-          width={120}
-          height={120}
-          className="rounded-xl opacity-90 border border-[#00ff41]/20 hover:border-[#00ff41]/50 transition-all duration-300 invert"
-        />
-      </div>
-
-      {/* Starfield Background */}
-      <div className="absolute inset-0 stars opacity-50 z-0"></div>
-
-      {/* CRT Scanline Overlay */}
-      <div className="scanlines"></div>
-
-      {/* Background 3D Globe and Satellite Orbit */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-70 pointer-events-none perspective-[1000px]">
+    <main>
+      {/* SECTION 1 — Hero Banner */}
+      <section className="hero-banner relative bg-black flex flex-col justify-between items-center text-center" style={{ backgroundImage: "url('/images/hero-banner.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', minHeight: '100vh' }}>
+        <div className="hero-banner-overlay absolute inset-0 bg-black/60"></div>
         
-        {/* 3D Satellite Earth Globe */}
-        <div className="earth-globe"></div>
+        {/* Empty top spacing for header */}
+        <div className="h-24"></div>
 
-        {/* Satellite Orbit Path */}
-        <div className="absolute w-[800px] h-[800px] rounded-full border border-dashed border-[#00ff41]/40 animate-orbit">
-          {/* Satellite Object */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#00ff41] rounded-full shadow-[0_0_15px_#00ff41]">
-            {/* Satellite Solar Panels */}
-            <div className="absolute top-1/2 -left-4 w-3 h-2 bg-[#00ff41] -translate-y-1/2"></div>
-            <div className="absolute top-1/2 -right-4 w-3 h-2 bg-[#00ff41] -translate-y-1/2"></div>
+        {/* Hero Central Content */}
+        <div className="hero-banner-content relative z-10 container mx-auto px-6 py-12 flex justify-center text-center">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 max-w-4xl mx-auto text-center">
+            <Image src="/images/ndp61.png" alt="NDP 61" width={80} height={80} className="rounded-xl shrink-0 shadow-2xl border border-white/20" />
+            <div className="text-center sm:text-left">
+              <p className="text-sm uppercase tracking-[0.3em] text-[#c8102e] font-bold mb-2">Majulah Singapura</p>
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-md">Happy 61st Birthday, Singapore</h2>
+            </div>
           </div>
         </div>
 
-        {/* The "Drone" SVG flying across screen */}
-        <div className="absolute animate-drone-flight text-[#00ff41]">
-          <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <polygon points="50,10 90,40 50,90 10,40" strokeDasharray="4 2" />
-            <circle cx="50" cy="45" r="15" strokeDasharray="2 4" />
-            <circle cx="50" cy="45" r="2" fill="currentColor" className="animate-pulse" />
-            <line x1="50" y1="10" x2="50" y2="90" />
-            <line x1="10" y1="40" x2="90" y2="40" />
-            {/* Thrusters / Details */}
-            <rect x="25" y="50" width="10" height="20" transform="rotate(-30 30 60)" />
-            <rect x="65" y="50" width="10" height="20" transform="rotate(30 70 60)" />
+        {/* Scroll Chevron - Positioned safely at bottom */}
+        <div className="relative z-10 pb-12 flex flex-col items-center justify-center text-center mx-auto">
+          <p className="text-xs text-white/80 uppercase tracking-[0.25em] font-semibold mb-3">Scroll for More</p>
+          <svg width="24" height="24" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto" style={{ animation: 'bounce-chevron 2s infinite' }}>
+            <path d="M7.35 9L15 16.417L22.65 9L25 11.2834L15 21L5 11.2834L7.35 9Z" fill="white"/>
           </svg>
         </div>
+      </section>
 
-        {/* HUD Data Corner (Consolidated on the Right) */}
-        <div className="absolute top-10 right-10 font-mono text-xs opacity-70 text-right">
-          <p className="text-[#00ff41] font-bold">SYS.OP.OK</p>
-          <p>ORBIT: LEO</p>
-          <p>ALT: 400 KM</p>
-          <div className="mt-4 border-t border-[#00ff41]/20 pt-4">
-            <p className="text-[#00ff41]/80">SAT.LOCKED</p>
-            <p>TRAJ: STABLE</p>
-            <p>GEO-UPLINK: SECURE</p>
+      {/* SECTION 2 — Statement Block */}
+      <section className="statement-block py-32 md:py-48 bg-black text-center">
+        <div className="container mx-auto px-4">
+          <p className="statement-block-label text-[#00ff41] uppercase tracking-[0.2em] font-semibold mb-8">Who We Are</p>
+          <h2 className="statement-block-heading text-white font-bold" style={{ fontSize: '3.5rem', maxWidth: '900px', margin: '0 auto 4rem', lineHeight: '1.2' }}>Defining the future of aerial intelligence.</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '3rem' }}>
+            <Link href="/about" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">About Us</Link>
+            <Link href="/aviars" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">About A.V.I.A.R.S</Link>
+            <Link href="/future" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">Our Future</Link>
+            <Link href="/why-sisko" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">Why Sisko Aerospace?</Link>
+            <Link href="/singapore" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">Why AVIARS for Singapore</Link>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-8 mt-12">
-        
-        {/* Main Heading */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-widest text-[#00ff41] glitch-hover drop-shadow-[0_0_15px_rgba(0,255,65,0.4)]">
-          Sisko on a whole new level,<br className="hidden md:block"/> coming soon
-        </h1>
+      {/* SECTION 3 — Feature Carousel (5 horizontal cards) */}
+      <section style={{ backgroundColor: '#141414', padding: '8rem 0', width: '100%', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', overflowX: 'auto', gap: '2.5rem', padding: '0 3rem', scrollSnapType: 'x mandatory' }} className="hide-scrollbar">
+          {[
+            { category: 'AVIARS Platform', title: 'AI-Powered Detection', image: '/images/card-ai-detection.jpg', href: '/aviars' },
+            { category: 'Autonomous Systems', title: 'Next-Gen Reconnaissance', image: '/images/card-drone-future.jpg', href: '/future' },
+            { category: 'Edge Computing', title: 'Real-Time Sensor Fusion', image: '/images/card-sensor-fusion.jpg', href: '/aviars' },
+            { category: 'Regional Defense', title: "Singapore's Next-Gen Defense", image: '/images/card-singapore-defense.jpg', href: '/singapore' },
+            { category: 'Mission Solutions', title: 'Why Sisko Aerospace?', image: '/images/card-why-sisko.jpg', href: '/why-sisko' },
+          ].map((card, i) => (
+            <Link
+              key={i}
+              href={card.href}
+              style={{
+                flex: '0 0 calc(33.333% - 2rem)',
+                minWidth: '400px',
+                height: '400px',
+                position: 'relative',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                display: 'block',
+                scrollSnapAlign: 'start',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                textDecoration: 'none',
+              }}
+              className="group"
+            >
+              <Image
+                src={card.image}
+                alt={card.title}
+                fill
+                sizes="(max-width: 768px) 80vw, 33vw"
+                style={{ objectFit: 'cover' }}
+                className="transition-transform duration-700 group-hover:scale-105"
+              />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)', zIndex: 1 }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2.5rem', zIndex: 2 }}>
+                <p style={{ color: '#00ff41', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  {card.category}
+                </p>
+                <h3 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', lineHeight: 1.2 }}>
+                  {card.title}
+                </h3>
+                <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                  Learn More
+                  <svg width="12" height="12" viewBox="0 0 15 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.99388 11.6127L0.48224 20.1243L3.24954 22.8916L11.7612 14.38L14.3801 11.761L11.6129 8.99371L2.61914 0L0.00017293 2.61897L8.99388 11.6127Z" fill="#00ff41"/>
+                  </svg>
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        {/* Separator Line */}
-        <div className="w-24 h-1 bg-[#00ff41] shadow-[0_0_10px_#00ff41] my-4"></div>
-
-        {/* Sub Heading */}
-        <p className="text-xl md:text-2xl font-mono tracking-[0.2em] text-[#00ff41]/80 bg-black/50 px-4 py-2 backdrop-blur-sm rounded">
-          SISKO AEROSPACE LLP
-        </p>
-
-      </div>
-
-      {/* NDP 61 Badge - Bottom of Page */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-        <Image
-          src="/images/ndp61.png"
-          alt="NDP 61 - Majulah Singapura, Go Beyond!"
-          width={120}
-          height={120}
-          className="rounded-lg opacity-90"
-        />
-      </div>
+      {/* SECTION 4 — CTA Banner */}
+      <section style={{ backgroundColor: '#0a0a0a', padding: '10rem 0', textAlign: 'center' }}>
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-12">Ready to deploy next-generation aerial intelligence?</h2>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '2.5rem', flexWrap: 'wrap' }}>
+            <Link href="/aviars" className="bg-[#00ff41] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white transition-colors">Platform Telemetry</Link>
+            <a href="mailto:sisko@duck.com?subject=Procurement%20Inquiry" className="border border-white text-white px-8 py-3 font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors">Procurement Inquiry</a>
+          </div>
+        </div>
+      </section>
     </main>
-  )
+  );
 }
