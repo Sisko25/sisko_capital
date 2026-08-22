@@ -11,11 +11,11 @@ export default function FuturePage() {
           backgroundImage: "url('/images/future-hero.jpg')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          minHeight: '520px',
+          minHeight: '580px',
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/60 to-black/30" />
-        <div className="relative z-10 site-container flex flex-col justify-end" style={{ minHeight: '520px', paddingBottom: '3.5rem' }}>
+        <div className="relative z-10 site-container flex flex-col justify-end" style={{ minHeight: '580px', paddingBottom: '4.5rem' }}>
           <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-6">Future Hardware Platform</p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight mb-6 tracking-tight">
             SISKO KESTREL-1
@@ -27,7 +27,7 @@ export default function FuturePage() {
       </section>
 
       {/* Executive Summary */}
-      <section className="py-20 md:py-28 bg-[#0a0a0a]">
+      <section className="py-28 md:py-40 bg-[#0a0a0a]">
         <div className="site-container">
           <div className="max-w-5xl space-y-6">
             <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Next-Gen Hardware</p>
@@ -51,9 +51,9 @@ export default function FuturePage() {
       </div>
 
       {/* High-End Optics & Camera System Deep Dive */}
-      <section className="py-20 md:py-28 bg-[#0a0a0a]">
+      <section className="py-28 md:py-40 bg-[#0a0a0a]">
         <div className="site-container">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-10 md:gap-14 items-center">
             
             {/* Optics Payload Image */}
             <div className="relative aspect-video rounded-xl overflow-hidden border border-white/10 shadow-2xl order-2 md:order-1">
@@ -97,14 +97,14 @@ export default function FuturePage() {
       </section>
 
       {/* Airframe & Autonomous Flight Features */}
-      <section className="py-20 md:py-28 bg-[#141414] border-y border-white/10">
+      <section className="py-28 md:py-40 bg-[#141414] border-y border-white/10">
         <div className="site-container">
-          <div className="text-center max-w-2xl mx-auto mb-12 space-y-6">
+          <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20 space-y-4">
             <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Platform Architecture</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">Engineering Highlights</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid md:grid-cols-3 gap-8 md:gap-10">
             {[
               {
                 title: 'Low-RCS Stealth Airframe',
@@ -124,7 +124,7 @@ export default function FuturePage() {
             ].map((feature, i) => (
               <div
                 key={i}
-                className="bg-[#0a0a0a] border border-white/10 p-8 md:p-10 rounded-lg hover:border-[#00ff41]/40 transition-all duration-300 space-y-8"
+                className="bg-[#0a0a0a] border border-white/10 p-10 sm:p-12 md:p-14 rounded-lg hover:border-[#00ff41]/40 transition-all duration-300 space-y-8"
               >
                 <div className="w-8 h-8 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded flex items-center justify-center text-[#00ff41] font-mono text-xs font-bold">
                   0{i + 1}
@@ -138,14 +138,14 @@ export default function FuturePage() {
       </section>
 
       {/* Performance Benchmarks Table */}
-      <section className="py-20 md:py-28 bg-[#0a0a0a]">
+      <section className="py-28 md:py-40 bg-[#0a0a0a]">
         <div className="site-container">
-          <div className="text-center max-w-2xl mx-auto mb-12 space-y-6">
+          <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20 space-y-4">
             <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Target Specifications</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">Kestrel-1 Telemetry Profile</h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
             {[
               { label: 'Flight Endurance', value: '14+ Hours' },
               { label: 'Operational Ceiling', value: '45,000 FT' },
@@ -156,7 +156,7 @@ export default function FuturePage() {
               { label: 'Radar Cross-Section', value: '< 0.001 m²' },
               { label: 'AI Processor', value: 'Dual TPU Edge Bus' },
             ].map((spec) => (
-              <div key={spec.label} className="bg-[#141414] p-8 md:p-10 rounded-lg border border-white/10 hover:border-[#00ff41]/30 transition-colors">
+              <div key={spec.label} className="bg-[#141414] p-10 sm:p-12 md:p-14 rounded-lg border border-white/10 hover:border-[#00ff41]/30 transition-colors">
                 <p className="text-[11px] uppercase tracking-wider text-white/50 mb-2 font-medium">{spec.label}</p>
                 <p className="text-lg sm:text-xl font-bold text-[#00ff41] font-mono">{spec.value}</p>
               </div>
@@ -166,7 +166,7 @@ export default function FuturePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 md:py-28 bg-[#141414] text-center border-t border-white/10">
+      <section className="py-28 md:py-40 bg-[#141414] text-center border-t border-white/10">
         <div className="site-container space-y-6">
           <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             Learn why Sisko Aerospace is the ideal partner.
@@ -174,16 +174,16 @@ export default function FuturePage() {
           <p className="text-white/60 text-base max-w-2xl mx-auto leading-relaxed">
             Discover our commitment to defense engineering excellence, sovereign technology ownership, and agile development.
           </p>
-          <div className="flex justify-center gap-5 flex-wrap pt-4">
+          <div className="flex justify-center gap-6 flex-wrap pt-6">
             <Link
               href="/why-sisko"
-              className="bg-[#00ff41] text-black px-8 py-3.5 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-colors"
+              className="bg-[#00ff41] text-black px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-colors"
             >
               Why Sisko Aerospace?
             </Link>
             <a
               href="mailto:sisko@duck.com?subject=Kestrel-1%20Procurement%20Inquiry"
-              className="border border-white/30 text-white px-8 py-3.5 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
+              className="border border-white/30 text-white px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
             >
               Procurement Inquiry
             </a>

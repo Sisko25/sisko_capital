@@ -11,11 +11,11 @@ export default function AboutPage() {
           backgroundImage: "url('/images/about-hero.jpg')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          minHeight: '520px',
+          minHeight: '580px',
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/60 to-black/30" />
-        <div className="relative z-10 site-container flex flex-col justify-end" style={{ minHeight: '520px', paddingBottom: '3.5rem' }}>
+        <div className="relative z-10 site-container flex flex-col justify-end" style={{ minHeight: '580px', paddingBottom: '4.5rem' }}>
           <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-6">Who We Are</p>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-[1.2] max-w-3xl tracking-tight">
             Pioneering the future of autonomous aerial intelligence.
@@ -24,9 +24,9 @@ export default function AboutPage() {
       </section>
 
       {/* Mission & Vision Section */}
-      <section className="py-20 md:py-28 bg-[#0a0a0a]">
+      <section className="py-28 md:py-40 bg-[#0a0a0a]">
         <div className="site-container">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-start">
+          <div className="grid md:grid-cols-2 gap-10 md:gap-14 items-start">
             
             {/* Our Mission */}
             <div className="space-y-8">
@@ -68,14 +68,14 @@ export default function AboutPage() {
       </div>
 
       {/* Core Values */}
-      <section className="py-20 md:py-28 bg-[#0a0a0a]">
+      <section className="py-28 md:py-40 bg-[#0a0a0a]">
         <div className="site-container">
-          <div className="text-center max-w-2xl mx-auto mb-12 space-y-6">
+          <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20 space-y-4">
             <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Core Values</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">What drives us forward.</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid md:grid-cols-3 gap-8 md:gap-10">
             {[
               {
                 number: '01',
@@ -98,7 +98,7 @@ export default function AboutPage() {
             ].map((value) => (
               <div
                 key={value.number}
-                className="bg-[#141414] border border-white/10 p-8 md:p-10 rounded-lg hover:border-[#00ff41]/40 transition-all duration-300 group"
+                className="bg-[#141414] border border-white/10 p-10 sm:p-12 md:p-14 rounded-lg hover:border-[#00ff41]/40 transition-all duration-300 group"
               >
                 <span className="text-4xl font-mono font-bold text-[#00ff41]/40 group-hover:text-[#00ff41] transition-colors duration-300">
                   {value.number}
@@ -112,9 +112,9 @@ export default function AboutPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 md:py-24 bg-[#141414] border-y border-white/10">
+      <section className="py-24 md:py-32 bg-[#141414] border-y border-white/10">
         <div className="site-container">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10 text-center">
             {[
               { stat: '2026', label: 'Founded' },
               { stat: 'SG', label: 'Headquarters' },
@@ -131,7 +131,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 md:py-28 bg-[#0a0a0a] text-center">
+      <section className="py-28 md:py-40 bg-[#0a0a0a] text-center">
         <div className="site-container space-y-6">
           <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
             Explore our flagship platform.
@@ -140,16 +140,16 @@ export default function AboutPage() {
             Learn how A.V.I.A.R.S is redefining autonomous aerial reconnaissance with real-time
             AI-powered detection, sensor fusion, and edge computing.
           </p>
-          <div className="flex justify-center gap-5 flex-wrap pt-4">
+          <div className="flex justify-center gap-6 flex-wrap pt-6">
             <Link
               href="/aviars"
-              className="bg-[#00ff41] text-black px-8 py-3.5 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-colors"
+              className="bg-[#00ff41] text-black px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-colors"
             >
               About AVIARS
             </Link>
             <Link
               href="/future"
-              className="border border-white/30 text-white px-8 py-3.5 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
+              className="border border-white/30 text-white px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
             >
               Our Future
             </Link>

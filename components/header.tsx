@@ -22,20 +22,20 @@ export default function Header() {
       {/* Main header bar */}
       <div className="bg-black/90 backdrop-blur-md">
         <div className="w-full max-w-[1536px] mx-auto px-6 sm:px-10 lg:px-16">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-20 lg:h-24">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0 flex items-center py-2 px-1">
               <Image
                 src="/images/sisko-aerospace-logo.jpg"
-                width={44}
-                height={44}
+                width={48}
+                height={48}
                 alt="Sisko Aerospace"
                 className="invert rounded-lg shadow-md"
               />
             </Link>
 
             {/* Desktop navigation */}
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '3rem' }} className="hidden md:flex">
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }} className="hidden md:flex">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
@@ -43,7 +43,7 @@ export default function Header() {
                     key={link.href}
                     href={link.href}
                     style={{
-                      padding: '0.25rem 0.5rem',
+                      padding: '0.5rem 0.75rem',
                       letterSpacing: '0.12em',
                       whiteSpace: 'nowrap',
                       display: 'inline-block',

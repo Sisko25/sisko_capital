@@ -33,23 +33,29 @@ export default function Home() {
       </section>
 
       {/* SECTION 2 — Statement Block */}
-      <section className="statement-block py-32 md:py-48 bg-black text-center">
-        <div className="container mx-auto px-4">
-          <p className="statement-block-label text-[#00ff41] uppercase tracking-[0.2em] font-semibold mb-8">Who We Are</p>
-          <h2 className="statement-block-heading text-white font-bold" style={{ fontSize: '3.5rem', maxWidth: '900px', margin: '0 auto 4rem', lineHeight: '1.2' }}>Defining the future of aerial intelligence.</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '3rem' }}>
-            <Link href="/about" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">About Us</Link>
-            <Link href="/aviars" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">About A.V.I.A.R.S</Link>
-            <Link href="/future" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">Our Future</Link>
-            <Link href="/why-sisko" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">Why Sisko Aerospace?</Link>
-            <Link href="/singapore" className="text-sm uppercase tracking-widest text-white/60 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1 hover:border-[#00ff41]">Why AVIARS for Singapore</Link>
+      <section className="statement-block py-36 md:py-48 bg-black text-center">
+        <div className="site-container">
+          <p className="statement-block-label text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-6">Who We Are</p>
+          <h2 className="statement-block-heading text-white font-bold max-w-4xl mx-auto mb-12 text-3xl sm:text-4xl md:text-5xl leading-tight">
+            Defining the future of aerial intelligence.
+          </h2>
+          <div className="flex flex-wrap justify-center gap-8 md:gap-14 pt-4">
+            <Link href="/about" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">About Us</Link>
+            <Link href="/aviars" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">About A.V.I.A.R.S</Link>
+            <Link href="/future" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">Our Future</Link>
+            <Link href="/why-sisko" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">Why Sisko Aerospace?</Link>
+            <Link href="/singapore" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">Why AVIARS for Singapore</Link>
           </div>
         </div>
       </section>
 
       {/* SECTION 3 — Feature Carousel (5 horizontal cards) */}
-      <section style={{ backgroundColor: '#141414', padding: '8rem 0', width: '100%', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', overflowX: 'auto', gap: '2.5rem', padding: '0 3rem', scrollSnapType: 'x mandatory' }} className="hide-scrollbar">
+      <section className="py-28 md:py-36 bg-[#141414] overflow-hidden border-y border-white/10">
+        <div className="site-container mb-10">
+          <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-3">Capabilities &amp; Platforms</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">Mission Focus Areas</h2>
+        </div>
+        <div style={{ display: 'flex', overflowX: 'auto', gap: '2.5rem', padding: '0 2.5rem', scrollSnapType: 'x mandatory' }} className="hide-scrollbar">
           {[
             { category: 'AVIARS Platform', title: 'AI-Powered Detection', image: '/images/card-ai-detection.jpg', href: '/aviars' },
             { category: 'Autonomous Systems', title: 'Next-Gen Reconnaissance', image: '/images/card-drone-future.jpg', href: '/future' },
@@ -62,17 +68,17 @@ export default function Home() {
               href={card.href}
               style={{
                 flex: '0 0 calc(33.333% - 2rem)',
-                minWidth: '400px',
-                height: '400px',
+                minWidth: '380px',
+                height: '420px',
                 position: 'relative',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 overflow: 'hidden',
                 display: 'block',
                 scrollSnapAlign: 'start',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 textDecoration: 'none',
               }}
-              className="group"
+              className="group hover:border-[#00ff41]/50 transition-all duration-300 shadow-2xl"
             >
               <Image
                 src={card.image}
@@ -84,10 +90,10 @@ export default function Home() {
               />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)', zIndex: 1 }} />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2.5rem', zIndex: 2 }}>
-                <p style={{ color: '#00ff41', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, marginBottom: '0.5rem' }}>
+                <p style={{ color: '#00ff41', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600, marginBottom: '0.75rem' }}>
                   {card.category}
                 </p>
-                <h3 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', lineHeight: 1.2 }}>
+                <h3 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.25rem', lineHeight: 1.2 }}>
                   {card.title}
                 </h3>
                 <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
@@ -103,12 +109,18 @@ export default function Home() {
       </section>
 
       {/* SECTION 4 — CTA Banner */}
-      <section style={{ backgroundColor: '#0a0a0a', padding: '10rem 0', textAlign: 'center' }}>
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-12">Ready to deploy next-generation aerial intelligence?</h2>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '2.5rem', flexWrap: 'wrap' }}>
-            <Link href="/aviars" className="bg-[#00ff41] text-black px-8 py-3 font-bold uppercase tracking-widest hover:bg-white transition-colors">Platform Telemetry</Link>
-            <a href="mailto:sisko@duck.com?subject=Procurement%20Inquiry" className="border border-white text-white px-8 py-3 font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors">Procurement Inquiry</a>
+      <section className="py-36 md:py-48 bg-[#0a0a0a] text-center">
+        <div className="site-container">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-12 max-w-3xl mx-auto leading-tight">
+            Ready to deploy next-generation aerial intelligence?
+          </h2>
+          <div className="flex justify-center gap-6 flex-wrap pt-4">
+            <Link href="/aviars" className="bg-[#00ff41] text-black px-10 py-4 font-bold uppercase tracking-widest text-xs rounded hover:bg-white transition-all shadow-lg hover:shadow-[0_0_24px_rgba(0,255,65,0.4)]">
+              Platform Telemetry
+            </Link>
+            <a href="mailto:sisko@duck.com?subject=Procurement%20Inquiry" className="border border-white/40 text-white px-10 py-4 font-bold uppercase tracking-widest text-xs rounded hover:bg-white hover:text-black transition-all">
+              Procurement Inquiry
+            </a>
           </div>
         </div>
       </section>
