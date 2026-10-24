@@ -148,10 +148,10 @@ export default function AboutPage() {
               About AVIARS
             </Link>
             <Link
-              href="/future"
+              href="/why-sisko"
               className="border border-white/30 text-white px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
             >
-              Our Future
+              Why Sisko Aerospace?
             </Link>
           </div>
         </div>
