@@ -1,0 +1,85 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Radiant Outer Glow -->
+    <radialGradient id="deepavaliGlow" cx="50%" cy="38%" r="50%">
+      <stop offset="0%" stop-color="#FFB703" stop-opacity="0.6"/>
+      <stop offset="45%" stop-color="#FB8500" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FB8500" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- Flame Outer Gradient -->
+    <linearGradient id="flameOuter" x1="60" y1="12" x2="60" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFDF0"/>
+      <stop offset="25%" stop-color="#FFD166"/>
+      <stop offset="60%" stop-color="#FF9E00"/>
+      <stop offset="100%" stop-color="#D90429"/>
+    </linearGradient>
+
+    <!-- Flame Core Gradient -->
+    <linearGradient id="flameCore" x1="60" y1="26" x2="60" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#FFF275"/>
+      <stop offset="100%" stop-color="#FF9E00"/>
+    </linearGradient>
+
+    <!-- Diya Brass / Clay Body Gradient -->
+    <linearGradient id="diyaBody" x1="20" y1="56" x2="100" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE3A8"/>
+      <stop offset="30%" stop-color="#E5A93C"/>
+      <stop offset="70%" stop-color="#B26E17"/>
+      <stop offset="100%" stop-color="#5E3203"/>
+    </linearGradient>
+
+    <!-- Diya Rim Gradient -->
+    <linearGradient id="diyaRim" x1="22" y1="58" x2="98" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9C5207"/>
+      <stop offset="50%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#9C5207"/>
+    </linearGradient>
+
+    <!-- Base Stand Gradient -->
+    <linearGradient id="diyaBase" x1="42" y1="88" x2="78" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#B26E17"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#78350F"/>
+    </linearGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient Light Halo -->
+  <circle cx="60" cy="45" r="48" fill="url(#deepavaliGlow)"/>
+
+  <!-- Sparkles / Radiance Rays -->
+  <g opacity="0.85" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round">
+    <line x1="60" y1="6" x2="60" y2="11"/>
+    <line x1="42" y1="16" x2="45" y2="20"/>
+    <line x1="78" y1="16" x2="75" y2="20"/>
+    <line x1="33" y1="32" x2="38" y2="34"/>
+    <line x1="87" y1="32" x2="82" y2="34"/>
+  </g>
+
+  <!-- Outer Flame -->
+  <path d="M60 14C60 14 42 34 42 48C42 57.94 50.06 64 60 64C69.94 64 78 57.94 78 48C78 34 60 14 60 14Z" fill="url(#flameOuter)" filter="url(#softGlow)"/>
+
+  <!-- Inner Hot Core Flame -->
+  <path d="M60 28C60 28 50 40 50 49C50 54.52 54.48 58 60 58C65.52 58 70 54.52 70 49C70 40 60 28 60 28Z" fill="url(#flameCore)"/>
+
+  <!-- Diya Oil Lamp Body -->
+  <path d="M22 60C26 78 40 90 60 90C80 90 94 78 98 60C98 60 60 65 22 60Z" fill="url(#diyaBody)" stroke="#FBBF24" stroke-width="1.5"/>
+
+  <!-- Diya Top Rim Lip -->
+  <ellipse cx="60" cy="60" rx="38" ry="6" fill="url(#diyaRim)" stroke="#FDE68A" stroke-width="1"/>
+
+  <!-- Diya Decorative Engravings -->
+  <path d="M38 72Q60 82 82 72" stroke="#FEF08A" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.75"/>
+  <circle cx="60" cy="79" r="2" fill="#FDE68A"/>
+  <circle cx="48" cy="76" r="1.5" fill="#FDE68A"/>
+  <circle cx="72" cy="76" r="1.5" fill="#FDE68A"/>
+
+  <!-- Diya Pedestal Stand -->
+  <path d="M48 90L44 98C44 99.1 44.9 100 46 100H74C75.1 100 76 99.1 76 98L72 90H48Z" fill="url(#diyaBase)" stroke="#FBBF24" stroke-width="1"/>
+</svg>

@@ -15,10 +15,12 @@ export default function Home() {
         {/* Hero Central Content */}
         <div className="hero-banner-content relative z-10 container mx-auto px-6 py-12 flex justify-center text-center">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 max-w-4xl mx-auto text-center">
-            <Image src="/images/ndp61.png" alt="NDP 61" width={80} height={80} className="rounded-xl shrink-0 shadow-2xl border border-white/20" />
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center shrink-0 shadow-[0_0_35px_rgba(245,158,11,0.25)] backdrop-blur-md">
+              <Image src="/images/diya.svg" alt="Deepavali Diya" width={72} height={72} className="shrink-0 drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]" priority />
+            </div>
             <div className="text-center sm:text-left">
-              <p className="text-sm uppercase tracking-[0.3em] text-[#c8102e] font-bold mb-2">Majulah Singapura</p>
-              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-md">Happy 61st Birthday, Singapore</h2>
+              <p className="text-sm uppercase tracking-[0.3em] text-amber-400 font-bold mb-2">Festival of Lights</p>
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight drop-shadow-md">Happy Deepavali</h2>
             </div>
           </div>
         </div>
