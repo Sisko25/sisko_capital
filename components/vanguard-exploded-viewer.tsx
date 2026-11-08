@@ -1054,7 +1054,7 @@ export default function VanguardExplodedViewer() {
             style={{ padding: '1.25rem 1.5rem' }}
           >
             {/* Phase Stepper Buttons */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
               {phases.map((ph) => {
                 const isCurrent = activePhaseIndex === ph.phase;
                 return (
@@ -1084,65 +1084,6 @@ export default function VanguardExplodedViewer() {
                   </button>
                 );
               })}
-            </div>
-
-            {/* Interactive Explode Scrubber Slider + Live Axis Readouts */}
-            <div
-              className="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-white/10"
-              style={{ paddingTop: '0.85rem' }}
-            >
-              <div className="flex items-center gap-4 w-full md:w-1/2">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-white/55 whitespace-nowrap">
-                  EXPLODE (0.0 → 1.0)
-                </span>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.005}
-                  value={activeProgress}
-                  onChange={(e) => setManualOverride(parseFloat(e.target.value))}
-                  aria-label="Exploded View Progress Slider"
-                  className="w-full accent-[#00ff41] cursor-pointer h-1.5 bg-white/15 rounded-lg"
-                />
-                {manualOverride !== null && (
-                  <button
-                    type="button"
-                    onClick={() => setManualOverride(null)}
-                    className="text-[10px] font-mono uppercase tracking-wider text-[#00ff41] hover:underline whitespace-nowrap"
-                  >
-                    Sync Scroll
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center justify-end gap-5 text-[11px] font-mono text-white/75">
-                <span>
-                  DORSAL (+Y):{' '}
-                  <strong className="text-[#00ff41]">
-                    +{(150 * t2Display).toFixed(0)}mm
-                  </strong>
-                </span>
-                <span>
-                  OPTICS (+Z):{' '}
-                  <strong className="text-[#38bdf8]">
-                    +{(120 * t3Display).toFixed(0)}mm
-                  </strong>
-                </span>
-                <span>
-                  VENTRAL (-Y):{' '}
-                  <strong className="text-amber-400">
-                    -{(100 * t4Display).toFixed(0)}mm
-                  </strong>
-                </span>
-                <span className="hidden sm:inline text-white/40">|</span>
-                <span className="hidden sm:inline text-white/55">
-                  STEP B-REP:{' '}
-                  <strong className="text-white/85">
-                    {stepTelemetry.edgeCurves} EDGES / {stepTelemetry.advancedFaces} FACES
-                  </strong>
-                </span>
-              </div>
             </div>
           </div>
         </div>
