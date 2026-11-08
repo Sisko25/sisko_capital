@@ -116,7 +116,10 @@ export default function VanguardPage() {
   return (
     <div className="bg-[#0B0C0E] text-white min-h-screen">
       {/* SECTION 1 — Minimalist Luxury Defense-Tech Hero Header */}
-      <section className="relative pt-16 pb-20 md:pt-24 md:pb-28 border-b border-white/10 overflow-hidden bg-[#0B0C0E]">
+      <section
+        className="relative border-b border-white/10 overflow-hidden bg-[#0B0C0E]"
+        style={{ paddingTop: '5.5rem', paddingBottom: '7rem' }}
+      >
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -125,25 +128,37 @@ export default function VanguardPage() {
           }}
         />
         <div className="site-container relative z-10">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div className="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10">
+          <div
+            className="flex flex-wrap items-center justify-between gap-6"
+            style={{ marginBottom: '2.75rem' }}
+          >
+            <div
+              className="inline-flex items-center gap-3 rounded-full bg-white/[0.04] border border-white/10"
+              style={{ padding: '0.6rem 1.25rem' }}
+            >
               <span className="w-2 h-2 rounded-full bg-[#00ff41]" />
-              <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-[#00ff41] font-semibold">
+              <span className="text-xs font-mono uppercase tracking-[0.25em] text-[#00ff41] font-semibold">
                 TACTICAL STEALTH MICRO-UAV // PROGRAM SA-1
               </span>
             </div>
-            <div className="flex items-center gap-3 text-xs font-mono text-white/50">
+            <div className="flex items-center gap-4 text-xs font-mono text-white/50">
               <span>ENVELOPE: 160 × 180 × 42 MM</span>
               <span className="text-white/20">|</span>
-              <span>CAD: ISO-10303-21 STEP + GLTF 2.0</span>
+              <span>DUAL-MODE RECON &amp; KINETIC INTERDICTION</span>
             </div>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-[1.05] mb-8">
+          <h1
+            className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-[1.08]"
+            style={{ marginBottom: '2.5rem' }}
+          >
             SA-1 &ldquo;VANGUARD&rdquo;
           </h1>
 
-          <p className="text-lg sm:text-xl md:text-2xl text-white/80 font-light leading-relaxed max-w-5xl mb-12">
+          <p
+            className="text-lg sm:text-xl md:text-2xl text-white/80 font-light leading-relaxed max-w-5xl"
+            style={{ marginBottom: '4.5rem', lineHeight: 1.75 }}
+          >
             The SA-1 &ldquo;Vanguard&rdquo; is a low-observable tactical micro-UAV featuring a
             flush-ducted quad-rotor carbon chassis engineered for near-silent acoustic operation
             and minimal radar cross-section in contested urban airspace. Equipped with a
@@ -154,37 +169,52 @@ export default function VanguardPage() {
             ventral hardpoint for precision-guided micro-munitions with zero payload drag penalty.
           </p>
 
-          {/* Key Architectural Telemetry Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-white/10">
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-1">
+          {/* Key Architectural Telemetry Cards */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-white/10"
+            style={{ paddingTop: '3.5rem', gap: '2rem' }}
+          >
+            <div
+              className="bg-[#111318] border border-white/10 rounded-xl"
+              style={{ padding: '1.75rem 2rem' }}
+            >
+              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-2">
                 Dimensional Footprint
               </p>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white">
+              <p className="text-2xl font-bold font-mono text-white">
                 160 × 180 × 42 <span className="text-xs text-[#00ff41]">mm</span>
               </p>
             </div>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-1">
+            <div
+              className="bg-[#111318] border border-white/10 rounded-xl"
+              style={{ padding: '1.75rem 2rem' }}
+            >
+              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-2">
                 Propulsion Architecture
               </p>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white">
+              <p className="text-2xl font-bold font-mono text-white">
                 4× 45mm <span className="text-xs text-[#00ff41]">Serrated Ducts</span>
               </p>
             </div>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-1">
+            <div
+              className="bg-[#111318] border border-white/10 rounded-xl"
+              style={{ padding: '1.75rem 2rem' }}
+            >
+              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-2">
                 Forward Sensor Ring
               </p>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white">
+              <p className="text-2xl font-bold font-mono text-white">
                 4K Sapphire <span className="text-xs text-[#00ff41]">+ 3× LiDAR</span>
               </p>
             </div>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-1">
+            <div
+              className="bg-[#111318] border border-white/10 rounded-xl"
+              style={{ padding: '1.75rem 2rem' }}
+            >
+              <p className="text-[11px] font-mono uppercase tracking-widest text-white/45 mb-2">
                 Ventral Hardpoint Drag
               </p>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-[#00ff41]">
+              <p className="text-2xl font-bold font-mono text-[#00ff41]">
                 0.0% <span className="text-xs text-white/70">Internal Flush Bay</span>
               </p>
             </div>
@@ -192,14 +222,20 @@ export default function VanguardPage() {
         </div>
       </section>
 
-      {/* SECTION 2 — Apple-Style Interactive 4-Phase Scroll Exploded View (.GLB + .STEP) */}
+      {/* SECTION 2 — Apple-Style Interactive 4-Phase Scroll Exploded View */}
       <VanguardExplodedViewer />
 
       {/* SECTION 3 — 4-Subsystem Engineering Deep Dive */}
-      <section className="py-28 md:py-40 bg-[#0B0C0E] border-b border-white/10">
+      <section
+        className="bg-[#0B0C0E] border-b border-white/10"
+        style={{ paddingTop: '8.5rem', paddingBottom: '8.5rem' }}
+      >
         <div className="site-container">
-          <div className="max-w-3xl mb-16 md:mb-20 space-y-4">
-            <p className="text-[#00ff41] font-mono uppercase tracking-[0.25em] text-xs font-semibold">
+          <div className="max-w-3xl" style={{ marginBottom: '5rem' }}>
+            <p
+              className="text-[#00ff41] font-mono uppercase tracking-[0.25em] text-xs font-semibold"
+              style={{ marginBottom: '1.25rem' }}
+            >
               Exploded Subsystem Architecture
             </p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
@@ -207,35 +243,56 @@ export default function VanguardPage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-10 md:gap-12">
+          <div className="grid md:grid-cols-2" style={{ gap: '3rem' }}>
             {subsystems.map((sub) => (
               <div
                 key={sub.id}
-                className="bg-[#111318] border border-white/10 rounded-2xl p-8 sm:p-10 md:p-12 hover:border-[#00ff41]/45 transition-all duration-300 shadow-2xl flex flex-col justify-between"
+                style={{ padding: '3rem' }}
+                className="bg-[#111318] border border-white/10 rounded-2xl hover:border-[#00ff41]/45 transition-all duration-300 shadow-2xl flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-4 mb-6">
-                    <span className="w-11 h-11 rounded-lg bg-[#00ff41]/10 border border-[#00ff41]/30 flex items-center justify-center font-mono text-sm font-bold text-[#00ff41]">
+                  <div
+                    className="flex items-center justify-between gap-4"
+                    style={{ marginBottom: '2rem' }}
+                  >
+                    <span className="w-12 h-12 rounded-xl bg-[#00ff41]/10 border border-[#00ff41]/30 flex items-center justify-center font-mono text-sm font-bold text-[#00ff41]">
                       {sub.id}
                     </span>
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-white/55 bg-white/[0.03] px-3 py-1 rounded border border-white/10">
+                    <span
+                      className="text-[11px] font-mono uppercase tracking-wider text-white/55 bg-white/[0.03] rounded-lg border border-white/10"
+                      style={{ padding: '0.4rem 0.85rem' }}
+                    >
                       {sub.axisBadge}
                     </span>
                   </div>
 
-                  <h3 className="text-2xl font-bold text-white mb-1">{sub.title}</h3>
-                  <p className="text-xs font-mono uppercase tracking-wider text-[#00ff41] mb-5">
+                  <h3
+                    className="text-2xl sm:text-3xl font-bold text-white"
+                    style={{ marginBottom: '0.5rem' }}
+                  >
+                    {sub.title}
+                  </h3>
+                  <p
+                    className="text-xs font-mono uppercase tracking-wider text-[#00ff41]"
+                    style={{ marginBottom: '1.5rem' }}
+                  >
                     {sub.subtitle}
                   </p>
-                  <p className="text-white/70 text-sm sm:text-base leading-relaxed mb-8">
+                  <p
+                    className="text-white/70 text-base leading-relaxed"
+                    style={{ marginBottom: '2.5rem', lineHeight: 1.8 }}
+                  >
                     {sub.description}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/10">
+                <div
+                  className="grid grid-cols-2 border-t border-white/10"
+                  style={{ paddingTop: '2rem', gap: '1.5rem' }}
+                >
                   {sub.metrics.map((m) => (
                     <div key={m.label}>
-                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-white/45 mb-1.5">
                         {m.label}
                       </p>
                       <p className="text-xs sm:text-sm font-mono font-bold text-white">
@@ -250,61 +307,69 @@ export default function VanguardPage() {
         </div>
       </section>
 
-      {/* SECTION 4 — ISO-10303-21 STEP & 2-Manifold CAD Verification Matrix */}
-      <section className="py-28 md:py-40 bg-[#0E1014] border-b border-white/10">
+      {/* SECTION 4 — ISO-10303-21 STEP & 2-Manifold CAD Verification Matrix (No download buttons) */}
+      <section
+        className="bg-[#0E1014] border-b border-white/10"
+        style={{ paddingTop: '8.5rem', paddingBottom: '8.5rem' }}
+      >
         <div className="site-container">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-14 gap-6">
-            <div className="space-y-4 max-w-2xl">
-              <p className="text-[#00ff41] font-mono uppercase tracking-[0.25em] text-xs font-semibold">
-                Digital Twin &amp; B-Rep Verification
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                100% Watertight 2-Manifold CAD Assembly
-              </h2>
-              <p className="text-white/65 text-sm sm:text-base leading-relaxed">
-                Verified across 7 primary structural component groups with zero boundary edges and
-                zero non-manifold edges. Available in native OpenCASCADE ISO-10303-21 STEP B-Rep
-                and hierarchical glTF 2.0 formats.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="/models/sa1_vanguard.step"
-                download="SA1_Vanguard_CAD.step"
-                className="bg-[#00ff41] text-black px-6 py-3.5 rounded font-mono text-xs font-bold uppercase tracking-wider hover:bg-white transition-all shadow-lg"
-              >
-                Download .STEP (2.6 MB)
-              </a>
-              <a
-                href="/models/sa1_vanguard.glb"
-                download="SA1_Vanguard_3D.glb"
-                className="border border-white/25 text-white px-6 py-3.5 rounded font-mono text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-all"
-              >
-                Download .GLB (2.5 MB)
-              </a>
-            </div>
+          <div className="max-w-3xl" style={{ marginBottom: '4.5rem' }}>
+            <p
+              className="text-[#00ff41] font-mono uppercase tracking-[0.25em] text-xs font-semibold"
+              style={{ marginBottom: '1.25rem' }}
+            >
+              Digital Twin &amp; B-Rep Verification
+            </p>
+            <h2
+              className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight"
+              style={{ marginBottom: '1.5rem' }}
+            >
+              100% Watertight 2-Manifold CAD Assembly
+            </h2>
+            <p className="text-white/65 text-base sm:text-lg leading-relaxed">
+              Verified across 7 primary structural component groups with zero boundary edges and
+              zero non-manifold edges, combining OpenCASCADE ISO-10303-21 STEP B-Rep precision with
+              hierarchical real-time glTF 2.0 telemetry.
+            </p>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#0B0C0E]">
-            <table className="w-full text-left border-collapse min-w-[720px]">
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0B0C0E] shadow-2xl">
+            <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
-                <tr className="border-b border-white/15 text-[11px] font-mono uppercase tracking-wider text-white/45 bg-white/[0.02]">
-                  <th className="py-4 px-6">GLTF / STEP Node</th>
-                  <th className="py-4 px-6">Material &amp; Structural Role</th>
-                  <th className="py-4 px-6">Bounding Envelope</th>
-                  <th className="py-4 px-6">Polygon Topology</th>
-                  <th className="py-4 px-6 text-[#00ff41]">Manifold Audit</th>
+                <tr className="border-b border-white/15 text-xs font-mono uppercase tracking-wider text-white/50 bg-white/[0.02]">
+                  <th style={{ padding: '1.35rem 2rem' }}>Subsystem Node</th>
+                  <th style={{ padding: '1.35rem 2rem' }}>Material &amp; Structural Role</th>
+                  <th style={{ padding: '1.35rem 2rem' }}>Bounding Envelope</th>
+                  <th style={{ padding: '1.35rem 2rem' }}>Polygon Topology</th>
+                  <th style={{ padding: '1.35rem 2rem' }} className="text-[#00ff41]">
+                    Manifold Audit
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10 text-xs sm:text-sm font-mono">
                 {cadManifest.map((row) => (
                   <tr key={row.group} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4 px-6 font-bold text-white">{row.group}</td>
-                    <td className="py-4 px-6 text-white/65 font-sans">{row.role}</td>
-                    <td className="py-4 px-6 text-white/80">{row.dims}</td>
-                    <td className="py-4 px-6 text-white/70">{row.polys}</td>
-                    <td className="py-4 px-6 text-[#00ff41] font-bold">{row.status}</td>
+                    <td style={{ padding: '1.35rem 2rem' }} className="font-bold text-white">
+                      {row.group}
+                    </td>
+                    <td
+                      style={{ padding: '1.35rem 2rem' }}
+                      className="text-white/70 font-sans"
+                    >
+                      {row.role}
+                    </td>
+                    <td style={{ padding: '1.35rem 2rem' }} className="text-white/80">
+                      {row.dims}
+                    </td>
+                    <td style={{ padding: '1.35rem 2rem' }} className="text-white/70">
+                      {row.polys}
+                    </td>
+                    <td
+                      style={{ padding: '1.35rem 2rem' }}
+                      className="text-[#00ff41] font-bold"
+                    >
+                      {row.status}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -314,28 +379,42 @@ export default function VanguardPage() {
       </section>
 
       {/* SECTION 5 — Procurement & Briefing CTA */}
-      <section className="py-28 md:py-36 bg-[#0B0C0E] text-center">
-        <div className="site-container space-y-8">
-          <p className="text-[#00ff41] font-mono uppercase tracking-[0.25em] text-xs font-semibold">
+      <section
+        className="bg-[#0B0C0E] text-center"
+        style={{ paddingTop: '8.5rem', paddingBottom: '9.5rem' }}
+      >
+        <div className="site-container">
+          <p
+            className="text-[#00ff41] font-mono uppercase tracking-[0.25em] text-xs font-semibold"
+            style={{ marginBottom: '1.5rem' }}
+          >
             Sovereign Tactical Hardware
           </p>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-tight">
+          <h2
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-tight"
+            style={{ marginBottom: '1.75rem' }}
+          >
             Request an SA-1 &ldquo;Vanguard&rdquo; hardware &amp; telemetry evaluation.
           </h2>
-          <p className="text-white/60 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          <p
+            className="text-white/60 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed"
+            style={{ marginBottom: '3rem' }}
+          >
             Available for institutional defense partners and sovereign security agencies with full
             native A.V.I.A.R.S. onboard edge autonomy.
           </p>
-          <div className="flex justify-center gap-6 flex-wrap pt-4">
+          <div className="flex justify-center gap-6 flex-wrap">
             <a
               href="mailto:sisko@duck.com?subject=SA-1%20Vanguard%20Procurement%20Evaluation"
-              className="bg-[#00ff41] text-black px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-all shadow-lg hover:shadow-[0_0_24px_rgba(0,255,65,0.4)]"
+              style={{ padding: '1.1rem 2.5rem' }}
+              className="bg-[#00ff41] text-black font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-all shadow-lg hover:shadow-[0_0_24px_rgba(0,255,65,0.4)]"
             >
               Request Evaluation Unit
             </a>
             <Link
               href="/aviars"
-              className="border border-white/30 text-white px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-all"
+              style={{ padding: '1.1rem 2.5rem' }}
+              className="border border-white/30 text-white font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-all"
             >
               Explore A.V.I.A.R.S. Core
             </Link>

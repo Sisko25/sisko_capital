@@ -43,180 +43,6 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
-// Parse ISO-10303-21 STEP file text into 3D line segments (converted to glTF Y-up, Z-forward space)
-function parseStepFileToSegments(stepText: string): {
-  telemetry: StepTelemetry;
-  groups: Record<string, Float32Array>;
-} {
-  const countOccurrences = (needle: string) => {
-    let count = 0;
-    let pos = 0;
-    while ((pos = stepText.indexOf(needle, pos)) !== -1) {
-      count++;
-      pos += needle.length;
-    }
-    return count;
-  };
-
-  const pts = new Map<string, [number, number, number]>();
-  const ptRe =
-    /#(\d+)\s*=\s*CARTESIAN_POINT\s*\(\s*'[^']*'\s*,\s*\(\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*\)\s*\)/g;
-  let m: RegExpExecArray | null;
-  while ((m = ptRe.exec(stepText)) !== null) {
-    pts.set(m[1], [parseFloat(m[2]), parseFloat(m[3]), parseFloat(m[4])]);
-  }
-
-  const dirs = new Map<string, [number, number, number]>();
-  const dirRe =
-    /#(\d+)\s*=\s*DIRECTION\s*\(\s*'[^']*'\s*,\s*\(\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*\)\s*\)/g;
-  while ((m = dirRe.exec(stepText)) !== null) {
-    dirs.set(m[1], [parseFloat(m[2]), parseFloat(m[3]), parseFloat(m[4])]);
-  }
-
-  const axes = new Map<string, { ptId: string; zId: string; xId: string }>();
-  const axisRe =
-    /#(\d+)\s*=\s*AXIS2_PLACEMENT_3D\s*\(\s*'[^']*'\s*,\s*#(\d+)\s*,\s*#(\d+)\s*,\s*#(\d+)\s*\)/g;
-  while ((m = axisRe.exec(stepText)) !== null) {
-    axes.set(m[1], { ptId: m[2], zId: m[3], xId: m[4] });
-  }
-
-  const circles = new Map<string, { axisId: string; radius: number }>();
-  const circRe =
-    /#(\d+)\s*=\s*CIRCLE\s*\(\s*'[^']*'\s*,\s*#(\d+)\s*,\s*([-+0-9.Ee]+)\s*\)/g;
-  while ((m = circRe.exec(stepText)) !== null) {
-    circles.set(m[1], { axisId: m[2], radius: parseFloat(m[3]) });
-  }
-
-  const vtx = new Map<string, [number, number, number]>();
-  const vtxRe = /#(\d+)\s*=\s*VERTEX_POINT\s*\(\s*'[^']*'\s*,\s*#(\d+)\s*\)/g;
-  while ((m = vtxRe.exec(stepText)) !== null) {
-    const p = pts.get(m[2]);
-    if (p) vtx.set(m[1], p);
-  }
-
-  const buckets: Record<string, number[]> = {
-    dorsal: [],
-    ventral: [],
-    gimbal: [],
-    lens: [],
-    sensors: [],
-    rotors: [],
-  };
-
-  // Classify a CAD point (x_cad, y_cad, z_cad) into the subsystem it belongs to
-  const classifyCadPoint = (x: number, y: number, z: number): string => {
-    // Lens region: X > 66.2, near centerline
-    if (x > 66.2 && Math.abs(y) < 10.5 && Math.abs(z) < 10.5) {
-      return 'lens';
-    }
-    // Gimbal sphere region: X in [49, 71], |Y| <= 13, |Z| <= 12.5
-    if (x >= 49.0 && x <= 71.5 && Math.abs(y) <= 13.0 && Math.abs(z) <= 12.5) {
-      return 'gimbal';
-    }
-    // LiDAR & VIO upper nose sensors
-    if (x >= 61.5 && z >= 7.5 && Math.abs(y) <= 15.0) {
-      return 'sensors';
-    }
-    // Rotor blades inside the 4 ducts (centers at (+33, ±52) and (-35, ±52), Z in [-6.5, +4.5])
-    const d1 = Math.hypot(x - 33.0, Math.abs(y) - 52.0);
-    const d2 = Math.hypot(x + 35.0, Math.abs(y) - 52.0);
-    if ((d1 < 21.8 || d2 < 21.8) && z > -6.5 && z < 4.5) {
-      return 'rotors';
-    }
-    if (z >= 0.0) {
-      return 'dorsal';
-    }
-    return 'ventral';
-  };
-
-  // Convert CAD (x_cad, y_cad, z_cad) -> glTF (X = y_cad, Y = z_cad, Z = x_cad)
-  const pushSegmentCad = (
-    target: number[],
-    p1: [number, number, number],
-    p2: [number, number, number]
-  ) => {
-    target.push(p1[1], p1[2], p1[0], p2[1], p2[2], p2[0]);
-  };
-
-  let edgeCurveCount = 0;
-  const edgeRe =
-    /#(\d+)\s*=\s*EDGE_CURVE\s*\(\s*'[^']*'\s*,\s*#(\d+)\s*,\s*#(\d+)\s*,\s*#(\d+)/g;
-  while ((m = edgeRe.exec(stepText)) !== null) {
-    edgeCurveCount++;
-    const v1 = vtx.get(m[2]);
-    const v2 = vtx.get(m[3]);
-    const curveId = m[4];
-
-    if (circles.has(curveId)) {
-      const cInfo = circles.get(curveId)!;
-      const ax = axes.get(cInfo.axisId);
-      if (ax) {
-        const center = pts.get(ax.ptId);
-        const normal = dirs.get(ax.zId);
-        const refX = dirs.get(ax.xId);
-        if (center && normal && refX && cInfo.radius > 0.5) {
-          // Cross product Y_axis = normal x refX
-          const ry: [number, number, number] = [
-            normal[1] * refX[2] - normal[2] * refX[1],
-            normal[2] * refX[0] - normal[0] * refX[2],
-            normal[0] * refX[1] - normal[1] * refX[0],
-          ];
-          const groupKey = classifyCadPoint(center[0], center[1], center[2]);
-          const bucket = buckets[groupKey];
-          const segs = cInfo.radius > 10 ? 36 : 18;
-          for (let i = 0; i < segs; i++) {
-            const a0 = (i / segs) * Math.PI * 2;
-            const a1 = ((i + 1) / segs) * Math.PI * 2;
-            const pA: [number, number, number] = [
-              center[0] + cInfo.radius * (Math.cos(a0) * refX[0] + Math.sin(a0) * ry[0]),
-              center[1] + cInfo.radius * (Math.cos(a0) * refX[1] + Math.sin(a0) * ry[1]),
-              center[2] + cInfo.radius * (Math.cos(a0) * refX[2] + Math.sin(a0) * ry[2]),
-            ];
-            const pB: [number, number, number] = [
-              center[0] + cInfo.radius * (Math.cos(a1) * refX[0] + Math.sin(a1) * ry[0]),
-              center[1] + cInfo.radius * (Math.cos(a1) * refX[1] + Math.sin(a1) * ry[1]),
-              center[2] + cInfo.radius * (Math.cos(a1) * refX[2] + Math.sin(a1) * ry[2]),
-            ];
-            pushSegmentCad(bucket, pA, pB);
-          }
-          continue;
-        }
-      }
-    }
-
-    if (v1 && v2) {
-      const dist = Math.hypot(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
-      if (dist > 0.25) {
-        const mx = 0.5 * (v1[0] + v2[0]);
-        const my = 0.5 * (v1[1] + v2[1]);
-        const mz = 0.5 * (v1[2] + v2[2]);
-        const groupKey = classifyCadPoint(mx, my, mz);
-        pushSegmentCad(buckets[groupKey], v1, v2);
-      }
-    }
-  }
-
-  const groups: Record<string, Float32Array> = {};
-  for (const [k, arr] of Object.entries(buckets)) {
-    groups[k] = new Float32Array(arr);
-  }
-
-  return {
-    telemetry: {
-      loaded: true,
-      fileSizeKB: Math.round(stepText.length / 1024),
-      products: countOccurrences('PRODUCT('),
-      manifoldSolids: countOccurrences('MANIFOLD_SOLID_BREP('),
-      closedShells: countOccurrences('CLOSED_SHELL('),
-      advancedFaces: countOccurrences('ADVANCED_FACE('),
-      edgeCurves: edgeCurveCount,
-      cartesianPoints: pts.size,
-      circles: circles.size,
-    },
-    groups,
-  };
-}
-
 export default function VanguardExplodedViewer() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -225,9 +51,8 @@ export default function VanguardExplodedViewer() {
   const [manualOverride, setManualOverride] = useState<number | null>(null);
   const [renderMode, setRenderMode] = useState<RenderMode>('hybrid');
   const [showAllCallouts, setShowAllCallouts] = useState(false);
-  const [modelLoaded, setModelLoaded] = useState(false);
   const [stepTelemetry, setStepTelemetry] = useState<StepTelemetry>({
-    loaded: false,
+    loaded: true,
     fileSizeKB: 2692,
     products: 8,
     manifoldSolids: 44,
@@ -241,7 +66,6 @@ export default function VanguardExplodedViewer() {
   const [callouts, setCallouts] = useState<CalloutScreenPos[]>([]);
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 });
 
-  // Refs shared with the animation loop
   const effectiveProgressRef = useRef(0);
   const smoothedProgressRef = useRef(0);
   const renderModeRef = useRef<RenderMode>('hybrid');
@@ -260,7 +84,7 @@ export default function VanguardExplodedViewer() {
     showAllCalloutsRef.current = showAllCallouts;
   }, [showAllCallouts]);
 
-  // Listen to window scroll to compute 0.0 -> 1.0 progress within the 520vh scroll track
+  // Bind scroll progress (0.0 -> 1.0) within the scroll track
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
@@ -281,7 +105,6 @@ export default function VanguardExplodedViewer() {
     };
   }, []);
 
-  // Jump to a specific scroll phase smoothly
   const jumpToProgress = useCallback((targetP: number) => {
     setManualOverride(null);
     if (!containerRef.current) return;
@@ -294,7 +117,6 @@ export default function VanguardExplodedViewer() {
     });
   }, []);
 
-  // Main Three.js Scene + GLB Loader + STEP B-Rep Loader + Animation Loop
   useEffect(() => {
     const wrapper = canvasWrapperRef.current;
     if (!wrapper) return;
@@ -305,7 +127,7 @@ export default function VanguardExplodedViewer() {
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#0B0C0E');
-    scene.fog = new THREE.FogExp2('#0B0C0E', 0.00085);
+    scene.fog = new THREE.FogExp2('#0B0C0E', 0.0008);
 
     const camera = new THREE.PerspectiveCamera(34, width / height, 1, 3000);
     camera.position.set(275, 135, 310);
@@ -319,7 +141,7 @@ export default function VanguardExplodedViewer() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.28;
 
     wrapper.innerHTML = '';
     wrapper.appendChild(renderer.domElement);
@@ -346,15 +168,14 @@ export default function VanguardExplodedViewer() {
     // =========================================================================
     // STUDIO KEY / RIM / AMBIENT LIGHTING SETUP (#0B0C0E Minimalist Defense-Tech)
     // =========================================================================
-    const hemiLight = new THREE.HemisphereLight(0xdbe6f5, 0x0b0c0e, 0.85);
+    const hemiLight = new THREE.HemisphereLight(0xdbe6f5, 0x0b0c0e, 0.9);
     scene.add(hemiLight);
 
-    // Main Warm-White Studio Key Light
-    const keyLight = new THREE.DirectionalLight(0xfffcf5, 2.6);
+    const keyLight = new THREE.DirectionalLight(0xfffcf5, 2.7);
     keyLight.position.set(260, 380, 320);
     keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 2048;
-    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
     keyLight.shadow.camera.near = 50;
     keyLight.shadow.camera.far = 1100;
     const d = 240;
@@ -365,27 +186,22 @@ export default function VanguardExplodedViewer() {
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
-    // Cool Steel-Blue Rim Light (Aft-Port Backlight for razor-sharp chine highlights)
-    const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.85);
+    const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.9);
     rimLight.position.set(-300, 180, -280);
     scene.add(rimLight);
 
-    // Subtle Sisko Emerald Tactical Under-Fill Light
-    const tacticalLight = new THREE.DirectionalLight(0x00ff41, 0.45);
+    const tacticalLight = new THREE.DirectionalLight(0x00ff41, 0.5);
     tacticalLight.position.set(0, -260, 120);
     scene.add(tacticalLight);
 
-    // Soft Nose Fill Light for the 4K Sapphire Lens & Gold-Dichroic LiDAR Windows
-    const noseSpot = new THREE.PointLight(0x38bdf8, 1.4, 420);
+    const noseSpot = new THREE.PointLight(0x38bdf8, 1.5, 420);
     noseSpot.position.set(0, 20, 240);
     scene.add(noseSpot);
 
-    // Subtle Tactical Floor Reference Grid at Y = -210mm
     const gridHelper = new THREE.GridHelper(640, 32, 0x1e293b, 0x131720);
     gridHelper.position.y = -215;
     scene.add(gridHelper);
 
-    // Root assembly group (receives subtle idle hover float)
     const uavRoot = new THREE.Group();
     scene.add(uavRoot);
 
@@ -414,7 +230,6 @@ export default function VanguardExplodedViewer() {
       tofSensorGroup
     );
 
-    // Individual radial sensor groups
     const radialSensorGroups: {
       name: string;
       group: THREE.Group;
@@ -423,8 +238,6 @@ export default function VanguardExplodedViewer() {
       dirZ: number;
     }[] = [];
 
-    // 4x Individual spinning & elevating rotor groups
-    // Duct centers in glTF space (X = y_cad, Y = z_cad, Z = x_cad)
     const rotorConfigs: Record<
       string,
       { hubX: number; hubY: number; hubZ: number; hand: number; group: THREE.Group; spinMesh?: THREE.Object3D }
@@ -439,41 +252,38 @@ export default function VanguardExplodedViewer() {
       uavRoot.add(rc.group);
     });
 
-    // Collections for dynamic render mode switching (PBR vs STEP B-Rep overlay vs Wireframe)
     const pbrMeshes: THREE.Mesh[] = [];
-    const glbChineEdges: THREE.LineSegments[] = [];
     const stepEdgeLines: THREE.LineSegments[] = [];
 
-    // High-luxury defense-tech physical materials per node
     const buildMaterialForNode = (name: string): THREE.MeshPhysicalMaterial => {
       if (name === 'Main_Hull_Top') {
         return new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color('#1c2026'),
-          metalness: 0.35,
-          roughness: 0.48,
-          clearcoat: 0.25,
-          clearcoatRoughness: 0.4,
+          color: new THREE.Color('#1e232a'),
+          metalness: 0.38,
+          roughness: 0.45,
+          clearcoat: 0.3,
+          clearcoatRoughness: 0.35,
         });
       }
       if (name === 'Main_Hull_Ventral') {
         return new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color('#15181e'),
-          metalness: 0.3,
-          roughness: 0.55,
-          clearcoat: 0.15,
+          color: new THREE.Color('#161920'),
+          metalness: 0.32,
+          roughness: 0.52,
+          clearcoat: 0.2,
         });
       }
       if (name.startsWith('Ducted_Propeller')) {
         return new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color('#2d3540'),
-          metalness: 0.65,
-          roughness: 0.28,
+          color: new THREE.Color('#323b48'),
+          metalness: 0.68,
+          roughness: 0.26,
           clearcoat: 0.4,
         });
       }
       if (name === 'Gimbal_Sphere_Assembly') {
         return new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color('#282e38'),
+          color: new THREE.Color('#2b323d'),
           metalness: 0.82,
           roughness: 0.22,
           clearcoat: 0.5,
@@ -483,9 +293,9 @@ export default function VanguardExplodedViewer() {
         return new THREE.MeshPhysicalMaterial({
           color: new THREE.Color('#0ea5e9'),
           emissive: new THREE.Color('#0284c7'),
-          emissiveIntensity: 0.35,
+          emissiveIntensity: 0.4,
           metalness: 0.15,
-          roughness: 0.06,
+          roughness: 0.05,
           clearcoat: 1.0,
           clearcoatRoughness: 0.04,
           reflectivity: 1.0,
@@ -495,7 +305,7 @@ export default function VanguardExplodedViewer() {
         return new THREE.MeshPhysicalMaterial({
           color: new THREE.Color('#f59e0b'),
           emissive: new THREE.Color('#d97706'),
-          emissiveIntensity: 0.32,
+          emissiveIntensity: 0.35,
           metalness: 0.4,
           roughness: 0.12,
           clearcoat: 1.0,
@@ -505,7 +315,7 @@ export default function VanguardExplodedViewer() {
         return new THREE.MeshPhysicalMaterial({
           color: new THREE.Color('#10b981'),
           emissive: new THREE.Color('#059669'),
-          emissiveIntensity: 0.22,
+          emissiveIntensity: 0.25,
           metalness: 0.72,
           roughness: 0.25,
           clearcoat: 0.6,
@@ -515,13 +325,12 @@ export default function VanguardExplodedViewer() {
         return new THREE.MeshPhysicalMaterial({
           color: new THREE.Color('#3b4252'),
           emissive: new THREE.Color('#ef4444'),
-          emissiveIntensity: 0.1,
+          emissiveIntensity: 0.14,
           metalness: 0.78,
           roughness: 0.26,
           clearcoat: 0.45,
         });
       }
-      // Fasteners_Hardware
       return new THREE.MeshPhysicalMaterial({
         color: new THREE.Color('#94a3b8'),
         metalness: 0.9,
@@ -529,13 +338,90 @@ export default function VanguardExplodedViewer() {
       });
     };
 
+    // =========================================================================
+    // INSTANT 0-MS PROCEDURAL INITIALIZATION (Ensures zero loading delay!)
+    // Upgraded seamlessly in place as soon as /models/sa1_vanguard.glb arrives
+    // =========================================================================
+    const fallbackMeshes: THREE.Object3D[] = [];
+    const buildInstantFallbackModel = () => {
+      const registerFallback = (mesh: THREE.Mesh, group: THREE.Group) => {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+        pbrMeshes.push(mesh);
+        fallbackMeshes.push(mesh);
+      };
+
+      // Dorsal Hull faceted stealth carapace
+      const dorsalGeom = new THREE.CylinderGeometry(64, 86, 19, 8);
+      dorsalGeom.scale(1.0, 1.0, 0.92);
+      const dorsalMesh = new THREE.Mesh(dorsalGeom, buildMaterialForNode('Main_Hull_Top'));
+      dorsalMesh.position.set(0, 10, 0);
+      registerFallback(dorsalMesh, dorsalHullGroup);
+
+      // Ventral Hull chassis
+      const ventralGeom = new THREE.CylinderGeometry(86, 68, 16, 8);
+      ventralGeom.scale(1.0, 1.0, 0.92);
+      const ventralMesh = new THREE.Mesh(ventralGeom, buildMaterialForNode('Main_Hull_Ventral'));
+      ventralMesh.position.set(0, -8, 0);
+      registerFallback(ventralMesh, ventralHullGroup);
+
+      // A.V.I.A.R.S. Core + Thermal Heatsink
+      const coreGeom = new THREE.BoxGeometry(40, 10, 60);
+      const coreMesh = new THREE.Mesh(coreGeom, buildMaterialForNode('AVIARS_Core_Thermal_Sink'));
+      coreMesh.position.set(0, 4, 0);
+      registerFallback(coreMesh, aviarsCoreGroup);
+
+      // Gimbal Sphere
+      const gimGeom = new THREE.SphereGeometry(12, 32, 32);
+      const gimMesh = new THREE.Mesh(gimGeom, buildMaterialForNode('Gimbal_Sphere_Assembly'));
+      gimMesh.position.set(0, 0, 62);
+      registerFallback(gimMesh, gimbalGroup);
+
+      // 4K Sapphire Lens
+      const lensGeom = new THREE.CylinderGeometry(8.5, 8.5, 5, 32);
+      lensGeom.rotateX(Math.PI / 2);
+      const lensMesh = new THREE.Mesh(lensGeom, buildMaterialForNode('Primary_4K_Lens'));
+      lensMesh.position.set(0, 0, 70);
+      registerFallback(lensMesh, lensGroup);
+
+      // Modular Kinetic Payload
+      const kinGeom = new THREE.CylinderGeometry(5.2, 5.2, 56, 8);
+      kinGeom.rotateX(Math.PI / 2);
+      const kinMesh = new THREE.Mesh(kinGeom, buildMaterialForNode('Modular_Kinetic_Payload'));
+      kinMesh.position.set(0, -8.2, 0);
+      registerFallback(kinMesh, kineticPayloadGroup);
+
+      // 4x Rotors
+      Object.entries(rotorConfigs).forEach(([rName, rc]) => {
+        const rGroup = new THREE.Group();
+        const hubG = new THREE.CylinderGeometry(6.5, 6.5, 7, 24);
+        const hubM = new THREE.Mesh(hubG, buildMaterialForNode(rName));
+        rGroup.add(hubM);
+        for (let b = 0; b < 5; b++) {
+          const bladeG = new THREE.BoxGeometry(16, 1.2, 5.2);
+          const bladeM = new THREE.Mesh(bladeG, buildMaterialForNode(rName));
+          const ang = (b * Math.PI * 2) / 5;
+          bladeM.position.set(Math.cos(ang) * 13, 0, Math.sin(ang) * 13);
+          bladeM.rotation.y = -ang;
+          rGroup.add(bladeM);
+        }
+        rc.group.add(rGroup);
+        rc.spinMesh = rGroup;
+        fallbackMeshes.push(rGroup);
+      });
+    };
+
+    buildInstantFallbackModel();
+
     const applyRenderModeStyles = () => {
       const mode = renderModeRef.current;
       pbrMeshes.forEach((mesh) => {
         const mat = mesh.material as THREE.MeshPhysicalMaterial;
+        if (!mat) return;
         if (mode === 'step-xray') {
           mat.transparent = true;
-          mat.opacity = 0.16;
+          mat.opacity = 0.18;
           mat.depthWrite = false;
         } else {
           mat.transparent = false;
@@ -545,23 +431,67 @@ export default function VanguardExplodedViewer() {
         mat.needsUpdate = true;
       });
 
-      glbChineEdges.forEach((line) => {
-        const lmat = line.material as THREE.LineBasicMaterial;
-        lmat.opacity = mode === 'hybrid' ? 0.22 : mode === 'step-overlay' ? 0.35 : 0.45;
-      });
-
       stepEdgeLines.forEach((line) => {
-        line.visible = mode === 'step-overlay' || mode === 'step-xray';
+        line.visible = true;
         const lmat = line.material as THREE.LineBasicMaterial;
-        lmat.opacity = mode === 'step-xray' ? 0.85 : 0.55;
+        lmat.opacity = mode === 'hybrid' ? 0.18 : mode === 'step-overlay' ? 0.65 : 0.9;
       });
     };
 
-    // 1. Load the hierarchical GLTF (.GLB) model
+    // 1. Stream pre-parsed ISO-10303-21 STEP B-Rep edges (43 KB JSON) for instant CAD overlay
+    let isCancelled = false;
+    fetch('/models/sa1_vanguard_step_edges.json')
+      .then((res) => res.json())
+      .then((parsed) => {
+        if (isCancelled || !parsed || !parsed.groups) return;
+        if (parsed.telemetry) {
+          setStepTelemetry(parsed.telemetry);
+        }
+
+        const attachStepGroup = (
+          arr: number[],
+          targetGroup: THREE.Group,
+          colorHex: number
+        ) => {
+          if (!arr || arr.length === 0) return;
+          const positions = new Float32Array(arr);
+          const bGeom = new THREE.BufferGeometry();
+          bGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+          const bMat = new THREE.LineBasicMaterial({
+            color: colorHex,
+            transparent: true,
+            opacity: 0.22,
+          });
+          const lines = new THREE.LineSegments(bGeom, bMat);
+          targetGroup.add(lines);
+          stepEdgeLines.push(lines);
+        };
+
+        attachStepGroup(parsed.groups.dorsal, dorsalHullGroup, 0x00ff41);
+        attachStepGroup(parsed.groups.ventral, ventralHullGroup, 0x38bdf8);
+        attachStepGroup(parsed.groups.gimbal, gimbalGroup, 0x22d3ee);
+        attachStepGroup(parsed.groups.lens, lensGroup, 0x60a5fa);
+        attachStepGroup(parsed.groups.sensors, gimbalGroup, 0xfbbf24);
+        attachStepGroup(parsed.groups.rotors, rotorHubFastenersGroup, 0x34d399);
+        applyRenderModeStyles();
+      })
+      .catch((err) => {
+        console.error('Error loading STEP edges JSON:', err);
+      });
+
+    // 2. Load the watertight 2-Manifold GLTF (.GLB) assembly without blocking the main thread
     const loader = new GLTFLoader();
     loader.load(
       '/models/sa1_vanguard.glb',
       (gltf) => {
+        if (isCancelled) return;
+
+        // Remove instant fallback meshes and replace with exact manifold CAD solids
+        fallbackMeshes.forEach((obj) => {
+          if (obj.parent) obj.parent.remove(obj);
+        });
+        pbrMeshes.length = 0;
+
         const meshesToProcess: THREE.Mesh[] = [];
         gltf.scene.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
@@ -581,28 +511,6 @@ export default function VanguardExplodedViewer() {
           mesh.receiveShadow = true;
           pbrMeshes.push(mesh);
 
-          // Add razor-sharp hard-chine crease highlight lines (threshold 28 degrees)
-          const edgesGeom = new THREE.EdgesGeometry(geom, 28);
-          const edgeColor =
-            nodeName === 'AVIARS_Core_Thermal_Sink'
-              ? 0x00ff41
-              : nodeName === 'Primary_4K_Lens'
-              ? 0x38bdf8
-              : nodeName.startsWith('Sensor_')
-              ? 0xfbbf24
-              : nodeName === 'Modular_Kinetic_Payload'
-              ? 0xf87171
-              : 0x64748b;
-          const edgesMat = new THREE.LineBasicMaterial({
-            color: edgeColor,
-            transparent: true,
-            opacity: 0.22,
-          });
-          const chineLines = new THREE.LineSegments(edgesGeom, edgesMat);
-          mesh.add(chineLines);
-          glbChineEdges.push(chineLines);
-
-          // Route each mesh into its corresponding hierarchical animation group
           if (nodeName === 'Main_Hull_Top') {
             dorsalHullGroup.add(mesh);
           } else if (nodeName === 'Main_Hull_Ventral') {
@@ -623,9 +531,7 @@ export default function VanguardExplodedViewer() {
             lensGroup.add(mesh);
           } else if (nodeName in rotorConfigs) {
             const rc = rotorConfigs[nodeName];
-            // Translate geometry so rotor center is at local (0,0,0) for true shaft rotation
             geom.translate(-rc.hubX, -rc.hubY, -rc.hubZ);
-            edgesGeom.translate(-rc.hubX, -rc.hubY, -rc.hubZ);
             rc.group.add(mesh);
             rc.spinMesh = mesh;
           } else if (nodeName.startsWith('Sensor_LiDAR_') || nodeName.startsWith('Sensor_VIO_')) {
@@ -664,7 +570,6 @@ export default function VanguardExplodedViewer() {
         });
 
         applyRenderModeStyles();
-        setModelLoaded(true);
       },
       undefined,
       (err) => {
@@ -672,48 +577,6 @@ export default function VanguardExplodedViewer() {
       }
     );
 
-    // 2. Fetch and parse the ISO-10303-21 STEP B-Rep CAD file (/models/sa1_vanguard.step)
-    let isCancelled = false;
-    fetch('/models/sa1_vanguard.step')
-      .then((res) => res.text())
-      .then((stepText) => {
-        if (isCancelled) return;
-        const parsed = parseStepFileToSegments(stepText);
-        setStepTelemetry(parsed.telemetry);
-
-        const attachStepGroup = (
-          positions: Float32Array,
-          targetGroup: THREE.Group,
-          colorHex: number
-        ) => {
-          if (!positions || positions.length === 0) return;
-          const bGeom = new THREE.BufferGeometry();
-          bGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-          const bMat = new THREE.LineBasicMaterial({
-            color: colorHex,
-            transparent: true,
-            opacity: 0.6,
-          });
-          const lines = new THREE.LineSegments(bGeom, bMat);
-          lines.visible =
-            renderModeRef.current === 'step-overlay' || renderModeRef.current === 'step-xray';
-          targetGroup.add(lines);
-          stepEdgeLines.push(lines);
-        };
-
-        attachStepGroup(parsed.groups.dorsal, dorsalHullGroup, 0x00ff41);
-        attachStepGroup(parsed.groups.ventral, ventralHullGroup, 0x38bdf8);
-        attachStepGroup(parsed.groups.gimbal, gimbalGroup, 0x22d3ee);
-        attachStepGroup(parsed.groups.lens, lensGroup, 0x60a5fa);
-        attachStepGroup(parsed.groups.sensors, gimbalGroup, 0xfbbf24);
-        attachStepGroup(parsed.groups.rotors, rotorHubFastenersGroup, 0x34d399);
-        applyRenderModeStyles();
-      })
-      .catch((err) => {
-        console.error('Error parsing STEP file:', err);
-      });
-
-    // 3D Anchor Helpers for the 4 Callout Leader Lines
     const anchorEdgeSuite = new THREE.Vector3();
     const anchorNacelles = new THREE.Vector3();
     const anchorAviarsCore = new THREE.Vector3();
@@ -729,34 +592,20 @@ export default function VanguardExplodedViewer() {
 
     const clock = new THREE.Clock();
     let animFrameId = 0;
-    let lastCalloutUpdate = 0;
+    let lastCalloutUpdate = -1;
 
     const animate = () => {
       animFrameId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
-      // Smoothly damp scroll progress for cinematic Apple-grade fluid motion
       const targetP = effectiveProgressRef.current;
       smoothedProgressRef.current += (targetP - smoothedProgressRef.current) * 0.1;
       const p = smoothedProgressRef.current;
 
-      // =======================================================================
-      // 4-PHASE EXPLODED TRANSLATION (Z / Y AXES) BOUND TO SCROLL PROGRESS
-      // =======================================================================
-      // Phase 1 (0.00 - 0.25): Fully assembled SA-1 Vanguard hovering with subtle idle float
-      // Phase 2 (0.25 - 0.50): Dorsal Hull separates upwards along +Y (+150mm), exposing thermal sinks & patch antennae
-      // Phase 3 (0.50 - 0.75):
-      //   - Nose Gimbal Assembly & 4K sapphire optical lens pull forward along +Z (+120mm)
-      //   - Peripheral solid-state LiDAR apertures expand radially
-      //   - 4x ducted rotor props elevate slightly within their nacelles
-      // Phase 4 (0.75 - 1.00):
-      //   - Ventral Chassis lowers along -Y (-100mm)
-      //   - Modular precision kinetic payload / micro-munition drops down onto its own focal plane
       const t2 = smoothstep(0.25, 0.5, p);
       const t3 = smoothstep(0.5, 0.75, p);
       const t4 = smoothstep(0.75, 1.0, p);
 
-      // Subtle idle hover float (Phase 1 prominent, persists gently throughout)
       const floatY = Math.sin(elapsed * 1.7) * 3.2;
       const floatRoll = Math.sin(elapsed * 0.85) * 0.016;
       const floatPitch = Math.cos(elapsed * 1.05) * 0.014;
@@ -798,11 +647,9 @@ export default function VanguardExplodedViewer() {
       ventralFastenersGroup.position.set(0, -122.0 * t4, 0);
       kineticPayloadGroup.position.set(0, kineticY, kineticZ);
 
-      // Smooth camera choreography across the 4 phases (when user is not manually dragging)
       if (!userInteractingRef.current) {
-        // Orbit angle sweeps gently from isometric front-starboard to profile-isometric so all +Y/+Z/-Y axes are crystal clear
         const camAngle = 0.68 - 0.18 * t2 + 0.26 * t3 - 0.12 * t4 + Math.sin(elapsed * 0.25) * 0.03;
-        const camRadius = 395 + 45 * t2 + 35 * t3 + 45 * t4;
+        const camRadius = 405 + 45 * t2 + 35 * t3 + 45 * t4;
         const camHeight = 115 + 35 * t2 - 15 * t3 - 25 * t4;
         const targetCamX = Math.sin(camAngle) * camRadius;
         const targetCamZ = Math.cos(camAngle) * camRadius;
@@ -819,13 +666,11 @@ export default function VanguardExplodedViewer() {
       controls.update();
       renderer.render(scene, camera);
 
-      // Update 2D screen projections for the 4 Callout 1px leader lines (~30fps React state sync)
       if (elapsed - lastCalloutUpdate > 0.033) {
         lastCalloutUpdate = elapsed;
         const w = wrapper.clientWidth || 1280;
         const h = wrapper.clientHeight || 800;
 
-        // Compute world coordinates of the 4 component anchors
         anchorEdgeSuite.set(0, floatY + 2, 71.0 + lensZ);
         anchorNacelles.set(52.0, floatY - 2.5 + propElevateY, 33.0);
         anchorAviarsCore.set(0, floatY + 8.0 + 6.0 * t2, 2.0);
@@ -929,7 +774,6 @@ export default function VanguardExplodedViewer() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Watch for renderMode updates via interval check
     const modeCheck = setInterval(applyRenderModeStyles, 150);
 
     return () => {
@@ -985,22 +829,21 @@ export default function VanguardExplodedViewer() {
     },
   ];
 
-  // Calculate fixed screen coordinates for the 4 callout card anchor terminals
   const getCardAnchorBox = (c: CalloutScreenPos) => {
     const isLeft = c.cardSide === 'left';
     const isTop = c.cardSlot === 'top';
-    const cardWidth = 310;
-    const xEdge = isLeft ? 48 + cardWidth : viewportSize.width - 48 - cardWidth;
-    const yCenter = isTop ? viewportSize.height * 0.27 : viewportSize.height * 0.68;
+    const cardWidth = 320;
+    const xEdge = isLeft ? 56 + cardWidth : viewportSize.width - 56 - cardWidth;
+    const yCenter = isTop ? viewportSize.height * 0.28 : viewportSize.height * 0.66;
     return { xEdge, yCenter, isLeft, isTop };
   };
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: '520vh' }}>
+    <div ref={containerRef} className="relative w-full" style={{ height: '500vh' }}>
       {/* Sticky Full-Viewport 3D Storytelling Stage */}
       <div
-        className="sticky top-20 lg:top-24 w-full overflow-hidden bg-[#0B0C0E] border-y border-white/10"
-        style={{ height: 'calc(100vh - 5rem)' }}
+        className="sticky top-24 w-full overflow-hidden bg-[#0B0C0E] border-y border-white/10"
+        style={{ height: 'calc(100vh - 6rem)' }}
       >
         {/* Subtle Studio Radial Lighting Vignette */}
         <div
@@ -1020,41 +863,27 @@ export default function VanguardExplodedViewer() {
           viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}
           preserveAspectRatio="none"
         >
-          <defs>
-            <linearGradient id="leaderLineGradLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#00ff41" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.45" />
-            </linearGradient>
-            <linearGradient id="leaderLineGradRight" x1="100%" y1="0%" x2="0%" y2="0%">
-              <stop offset="0%" stopColor="#00ff41" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.45" />
-            </linearGradient>
-          </defs>
-
           {callouts.map((c) => {
             if (!c.visible) return null;
             const { xEdge, yCenter, isLeft } = getCardAnchorBox(c);
-            const elbowX = isLeft ? xEdge + 42 : xEdge - 42;
+            const elbowX = isLeft ? xEdge + 44 : xEdge - 44;
             const ax = Math.max(80, Math.min(viewportSize.width - 80, c.anchorX));
             const ay = Math.max(60, Math.min(viewportSize.height - 60, c.anchorY));
 
             return (
               <g key={c.id} className="transition-opacity duration-500">
-                {/* 1px Crisp Elbow Leader Line */}
                 <polyline
                   points={`${xEdge},${yCenter} ${elbowX},${yCenter} ${ax},${ay}`}
                   fill="none"
                   stroke={c.active ? '#00ff41' : 'rgba(255,255,255,0.38)'}
                   strokeWidth="1"
                 />
-                {/* Card Terminal Node */}
                 <circle
                   cx={xEdge}
                   cy={yCenter}
                   r="3"
                   fill={c.active ? '#00ff41' : '#94a3b8'}
                 />
-                {/* 3D Component Anchor Target Reticle */}
                 <circle
                   cx={ax}
                   cy={ay}
@@ -1077,14 +906,20 @@ export default function VanguardExplodedViewer() {
         </svg>
 
         {/* Top Bar HUD — Phase Status + CAD Format Controls */}
-        <div className="pointer-events-none absolute top-5 left-6 right-6 z-30 flex flex-wrap items-center justify-between gap-4">
-          <div className="pointer-events-auto flex items-center gap-4 bg-black/65 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-[#00ff41] animate-pulse" />
+        <div
+          className="pointer-events-none absolute z-30 flex flex-wrap items-center justify-between gap-4"
+          style={{ top: '1.75rem', left: '2.5rem', right: '2.5rem' }}
+        >
+          <div
+            className="pointer-events-auto flex items-center gap-4 bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl"
+            style={{ padding: '0.85rem 1.35rem' }}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00ff41] animate-pulse" />
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#00ff41]">
+              <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#00ff41] mb-0.5">
                 SA-1 &ldquo;VANGUARD&rdquo; // PHASE 0{activePhaseIndex} OF 04
               </p>
-              <p className="text-xs font-semibold text-white tracking-wide">
+              <p className="text-xs sm:text-sm font-semibold text-white tracking-wide">
                 {phases[activePhaseIndex - 1].title}{' '}
                 <span className="text-white/45 font-mono ml-2">
                   [{Math.round(activeProgress * 100)}% EXPLODED]
@@ -1094,11 +929,15 @@ export default function VanguardExplodedViewer() {
           </div>
 
           {/* Interactive CAD Layer & Callout Switcher */}
-          <div className="pointer-events-auto flex flex-wrap items-center gap-2 bg-black/65 backdrop-blur-xl border border-white/10 p-1.5 rounded-lg">
+          <div
+            className="pointer-events-auto flex flex-wrap items-center gap-2 bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl"
+            style={{ padding: '0.5rem' }}
+          >
             <button
               type="button"
               onClick={() => setRenderMode('hybrid')}
-              className={`px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
+              style={{ padding: '0.5rem 0.9rem' }}
+              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
                 renderMode === 'hybrid'
                   ? 'bg-[#00ff41] text-black font-bold'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -1109,7 +948,8 @@ export default function VanguardExplodedViewer() {
             <button
               type="button"
               onClick={() => setRenderMode('step-overlay')}
-              className={`px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
+              style={{ padding: '0.5rem 0.9rem' }}
+              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
                 renderMode === 'step-overlay'
                   ? 'bg-[#00ff41] text-black font-bold'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -1120,7 +960,8 @@ export default function VanguardExplodedViewer() {
             <button
               type="button"
               onClick={() => setRenderMode('step-xray')}
-              className={`px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
+              style={{ padding: '0.5rem 0.9rem' }}
+              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
                 renderMode === 'step-xray'
                   ? 'bg-[#00ff41] text-black font-bold'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -1132,7 +973,8 @@ export default function VanguardExplodedViewer() {
             <button
               type="button"
               onClick={() => setShowAllCallouts((v) => !v)}
-              className={`px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wider transition-all ${
+              style={{ padding: '0.5rem 0.9rem' }}
+              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
                 showAllCallouts
                   ? 'bg-white/20 text-[#00ff41] border border-[#00ff41]/40'
                   : 'text-white/60 hover:text-white'
@@ -1143,7 +985,7 @@ export default function VanguardExplodedViewer() {
           </div>
         </div>
 
-        {/* 4 Glassmorphism Callout Cards (Desktop Anchored + Mobile Responsive) */}
+        {/* 4 Glassmorphism Callout Cards */}
         <div className="pointer-events-none absolute inset-0 z-30 hidden lg:block">
           {callouts.map((c) => {
             const isLeft = c.cardSide === 'left';
@@ -1152,40 +994,47 @@ export default function VanguardExplodedViewer() {
               <div
                 key={c.id}
                 style={{
-                  width: '310px',
-                  left: isLeft ? '48px' : undefined,
-                  right: !isLeft ? '48px' : undefined,
-                  top: isTop ? '18%' : '57%',
+                  width: '320px',
+                  left: isLeft ? '56px' : undefined,
+                  right: !isLeft ? '56px' : undefined,
+                  top: isTop ? '18%' : '54%',
+                  padding: '1.35rem 1.5rem',
                 }}
-                className={`pointer-events-auto absolute transition-all duration-500 rounded-xl p-5 backdrop-blur-xl border ${
+                className={`pointer-events-auto absolute transition-all duration-500 rounded-2xl backdrop-blur-xl border ${
                   c.visible
                     ? 'opacity-100 translate-y-0'
                     : 'opacity-0 translate-y-3 pointer-events-none'
                 } ${
                   c.active
-                    ? 'bg-black/75 border-[#00ff41]/55 shadow-[0_0_30px_rgba(0,255,65,0.14)]'
-                    : 'bg-black/55 border-white/15'
+                    ? 'bg-black/80 border-[#00ff41]/55 shadow-[0_0_30px_rgba(0,255,65,0.14)]'
+                    : 'bg-black/60 border-white/15'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2.5">
                   <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#00ff41] font-bold">
                     CALLOUT {c.number}
                   </span>
-                  <span className="text-[10px] font-mono text-white/50 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                  <span
+                    className="text-[10px] font-mono text-white/55 bg-white/5 rounded border border-white/10"
+                    style={{ padding: '0.15rem 0.5rem' }}
+                  >
                     {c.displacementLabel}
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-white tracking-tight mb-0.5">
+                <h3 className="text-base font-bold text-white tracking-tight mb-1">
                   {c.title}
                 </h3>
-                <p className="text-xs font-mono text-[#00ff41]/90 mb-3">{c.subtitle}</p>
-                <ul className="space-y-1.5 border-t border-white/10 pt-2.5">
+                <p className="text-xs font-mono text-[#00ff41]/90 mb-3.5">{c.subtitle}</p>
+                <ul
+                  className="space-y-2 border-t border-white/10"
+                  style={{ paddingTop: '0.75rem' }}
+                >
                   {c.specs.map((s, idx) => (
                     <li
                       key={idx}
-                      className="text-[11px] text-white/70 leading-snug flex items-start gap-2"
+                      className="text-[11px] text-white/75 leading-relaxed flex items-start gap-2.5"
                     >
-                      <span className="w-1 h-1 rounded-full bg-[#00ff41] mt-1.5 shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00ff41] mt-1.5 shrink-0" />
                       <span>{s}</span>
                     </li>
                   ))}
@@ -1196,10 +1045,16 @@ export default function VanguardExplodedViewer() {
         </div>
 
         {/* Bottom Dock — 4-Phase Interactive Scrubber & Live Z/Y Axis Telemetry */}
-        <div className="pointer-events-auto absolute bottom-5 left-6 right-6 z-30">
-          <div className="max-w-6xl mx-auto bg-black/75 backdrop-blur-xl border border-white/15 rounded-xl p-4 sm:p-5 shadow-2xl">
+        <div
+          className="pointer-events-auto absolute z-30"
+          style={{ bottom: '1.75rem', left: '2.5rem', right: '2.5rem' }}
+        >
+          <div
+            className="max-w-6xl mx-auto bg-black/80 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl"
+            style={{ padding: '1.25rem 1.5rem' }}
+          >
             {/* Phase Stepper Buttons */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-4">
               {phases.map((ph) => {
                 const isCurrent = activePhaseIndex === ph.phase;
                 return (
@@ -1207,7 +1062,8 @@ export default function VanguardExplodedViewer() {
                     key={ph.phase}
                     type="button"
                     onClick={() => jumpToProgress(ph.targetP)}
-                    className={`text-left p-3 rounded-lg border transition-all ${
+                    style={{ padding: '0.85rem 1rem' }}
+                    className={`text-left rounded-xl border transition-all ${
                       isCurrent
                         ? 'bg-[#00ff41]/10 border-[#00ff41]/60'
                         : 'bg-white/[0.02] border-white/10 hover:border-white/25'
@@ -1222,7 +1078,7 @@ export default function VanguardExplodedViewer() {
                       )}
                     </div>
                     <p className="text-xs font-bold text-white truncate">{ph.title}</p>
-                    <p className="text-[10px] font-mono text-white/50 truncate mt-0.5">
+                    <p className="text-[10px] font-mono text-white/50 truncate mt-1">
                       {ph.metric}
                     </p>
                   </button>
@@ -1231,9 +1087,12 @@ export default function VanguardExplodedViewer() {
             </div>
 
             {/* Interactive Explode Scrubber Slider + Live Axis Readouts */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2 border-t border-white/10">
-              <div className="flex items-center gap-3 w-full md:w-1/2">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-white/50 whitespace-nowrap">
+            <div
+              className="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-white/10"
+              style={{ paddingTop: '0.85rem' }}
+            >
+              <div className="flex items-center gap-4 w-full md:w-1/2">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-white/55 whitespace-nowrap">
                   EXPLODE (0.0 → 1.0)
                 </span>
                 <input
@@ -1257,7 +1116,7 @@ export default function VanguardExplodedViewer() {
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-4 text-[11px] font-mono text-white/75">
+              <div className="flex flex-wrap items-center justify-end gap-5 text-[11px] font-mono text-white/75">
                 <span>
                   DORSAL (+Y):{' '}
                   <strong className="text-[#00ff41]">
@@ -1277,7 +1136,7 @@ export default function VanguardExplodedViewer() {
                   </strong>
                 </span>
                 <span className="hidden sm:inline text-white/40">|</span>
-                <span className="hidden sm:inline text-white/50">
+                <span className="hidden sm:inline text-white/55">
                   STEP B-REP:{' '}
                   <strong className="text-white/85">
                     {stepTelemetry.edgeCurves} EDGES / {stepTelemetry.advancedFaces} FACES
@@ -1287,16 +1146,6 @@ export default function VanguardExplodedViewer() {
             </div>
           </div>
         </div>
-
-        {/* Loading Indicator */}
-        {!modelLoaded && (
-          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-[#0B0C0E]/90 backdrop-blur-md">
-            <div className="w-10 h-10 border-2 border-[#00ff41] border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-xs font-mono uppercase tracking-[0.25em] text-[#00ff41]">
-              Loading SA-1 Vanguard .GLB &amp; ISO-10303-21 .STEP Assembly...
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen`}>
         <Header />
-        <main className="pt-20 lg:pt-24">{children}</main>
+        <main className="pt-24 lg:pt-28" style={{ paddingTop: '6rem' }}>{children}</main>
         <Footer />
       </body>
     </html>
