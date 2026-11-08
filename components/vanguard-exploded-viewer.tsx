@@ -65,12 +65,15 @@ export default function VanguardExplodedViewer() {
 
   const [callouts, setCallouts] = useState<CalloutScreenPos[]>([]);
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 });
+  const [touchOrbitEnabled, setTouchOrbitEnabled] = useState(false);
 
   const effectiveProgressRef = useRef(0);
   const smoothedProgressRef = useRef(0);
   const renderModeRef = useRef<RenderMode>('hybrid');
   const showAllCalloutsRef = useRef(false);
   const userInteractingRef = useRef(false);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const rendererDomRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     effectiveProgressRef.current = manualOverride !== null ? manualOverride : scrollProgress;
@@ -83,6 +86,17 @@ export default function VanguardExplodedViewer() {
   useEffect(() => {
     showAllCalloutsRef.current = showAllCallouts;
   }, [showAllCallouts]);
+
+  useEffect(() => {
+    const isSmallScreen = viewportSize.width < 1024;
+    if (controlsRef.current) {
+      controlsRef.current.enabled = !isSmallScreen || touchOrbitEnabled;
+    }
+    if (rendererDomRef.current) {
+      rendererDomRef.current.style.touchAction =
+        !isSmallScreen || touchOrbitEnabled ? 'none' : 'pan-y';
+    }
+  }, [touchOrbitEnabled, viewportSize.width]);
 
   // Bind scroll progress (0.0 -> 1.0) within the scroll track
   useEffect(() => {
@@ -145,14 +159,19 @@ export default function VanguardExplodedViewer() {
 
     wrapper.innerHTML = '';
     wrapper.appendChild(renderer.domElement);
+    rendererDomRef.current = renderer.domElement;
 
     const controls = new OrbitControls(camera, renderer.domElement);
+    controlsRef.current = controls;
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.enableZoom = false;
     controls.enablePan = false;
     controls.minPolarAngle = Math.PI * 0.15;
     controls.maxPolarAngle = Math.PI * 0.82;
+    const isInitialSmall = width < 1024;
+    controls.enabled = !isInitialSmall;
+    renderer.domElement.style.touchAction = isInitialSmall ? 'pan-y' : 'none';
 
     const onStartInteract = () => {
       userInteractingRef.current = true;
@@ -648,9 +667,16 @@ export default function VanguardExplodedViewer() {
       kineticPayloadGroup.position.set(0, kineticY, kineticZ);
 
       if (!userInteractingRef.current) {
+        const w = wrapper.clientWidth || 1280;
+        const h = Math.max(1, wrapper.clientHeight || 800);
+        const aspect = w / h;
+        // Pull camera back on portrait mobile/tablet so the 180mm assembly + exploded components stay framed
+        const portraitMultiplier =
+          aspect < 1.05 ? Math.min(1.68, Math.max(1.0, 0.94 / Math.max(aspect, 0.45))) : 1.0;
+
         const camAngle = 0.68 - 0.18 * t2 + 0.26 * t3 - 0.12 * t4 + Math.sin(elapsed * 0.25) * 0.03;
-        const camRadius = 405 + 45 * t2 + 35 * t3 + 45 * t4;
-        const camHeight = 115 + 35 * t2 - 15 * t3 - 25 * t4;
+        const camRadius = (405 + 45 * t2 + 35 * t3 + 45 * t4) * portraitMultiplier;
+        const camHeight = (115 + 35 * t2 - 15 * t3 - 25 * t4) * (aspect < 0.8 ? 1.15 : 1.0);
         const targetCamX = Math.sin(camAngle) * camRadius;
         const targetCamZ = Math.cos(camAngle) * camRadius;
 
@@ -658,7 +684,9 @@ export default function VanguardExplodedViewer() {
         camera.position.y += (camHeight - camera.position.y) * 0.05;
         camera.position.z += (targetCamZ - camera.position.z) * 0.05;
 
-        const lookY = 12 * t2 - 18 * t4;
+        // Shift target slightly downward on mobile so the UAV sits higher in the open viewport above the bottom card
+        const mobileTargetYOffset = aspect < 0.85 ? -28 : 0;
+        const lookY = 12 * t2 - 18 * t4 + mobileTargetYOffset;
         const lookZ = 15 * t3;
         controls.target.lerp(new THREE.Vector3(0, lookY, lookZ), 0.08);
       }
@@ -700,7 +728,7 @@ export default function VanguardExplodedViewer() {
             cardSide: 'right',
             cardSlot: 'top',
             visible: forceAll || p <= 0.28 || (p >= 0.48 && p <= 0.78) || fullExplode,
-            active: p < 0.25 || (p >= 0.5 && p < 0.75),
+            active: p < 0.25,
             displacementLabel: `ELEVATION ΔY: +${(42.0 * t3).toFixed(1)} mm`,
           },
           {
@@ -790,13 +818,10 @@ export default function VanguardExplodedViewer() {
   const activePhaseIndex =
     activeProgress < 0.25 ? 1 : activeProgress < 0.5 ? 2 : activeProgress < 0.75 ? 3 : 4;
 
-  const t2Display = smoothstep(0.25, 0.5, activeProgress);
-  const t3Display = smoothstep(0.5, 0.75, activeProgress);
-  const t4Display = smoothstep(0.75, 1.0, activeProgress);
-
   const phases = [
     {
       phase: 1,
+      shortTitle: 'Hover',
       range: '0% – 25%',
       targetP: 0.08,
       title: 'Tactical Stealth Hover',
@@ -805,6 +830,7 @@ export default function VanguardExplodedViewer() {
     },
     {
       phase: 2,
+      shortTitle: 'Dorsal',
       range: '25% – 50%',
       targetP: 0.42,
       title: 'Dorsal Monocoque Separation',
@@ -813,6 +839,7 @@ export default function VanguardExplodedViewer() {
     },
     {
       phase: 3,
+      shortTitle: 'Optics',
       range: '50% – 75%',
       targetP: 0.67,
       title: 'Multi-Spectral Optics & Rotor Array',
@@ -821,6 +848,7 @@ export default function VanguardExplodedViewer() {
     },
     {
       phase: 4,
+      shortTitle: 'Ventral',
       range: '75% – 100%',
       targetP: 0.96,
       title: 'Ventral Chassis & Kinetic Hardpoint',
@@ -832,19 +860,21 @@ export default function VanguardExplodedViewer() {
   const getCardAnchorBox = (c: CalloutScreenPos) => {
     const isLeft = c.cardSide === 'left';
     const isTop = c.cardSlot === 'top';
-    const cardWidth = 320;
-    const xEdge = isLeft ? 56 + cardWidth : viewportSize.width - 56 - cardWidth;
-    const yCenter = isTop ? viewportSize.height * 0.28 : viewportSize.height * 0.66;
+    const isXl = viewportSize.width >= 1280;
+    const cardWidth = isXl ? 320 : 280;
+    const sideOffset = isXl ? 56 : 28;
+    const xEdge = isLeft ? sideOffset + cardWidth : viewportSize.width - sideOffset - cardWidth;
+    const yCenter = isTop ? viewportSize.height * 0.28 : viewportSize.height * 0.64;
     return { xEdge, yCenter, isLeft, isTop };
   };
 
+  const activeMobileCallout =
+    callouts.find((c) => c.active) || callouts[0] || null;
+
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: '500vh' }}>
+    <div ref={containerRef} className="relative w-full h-[360vh] sm:h-[420vh] lg:h-[500vh]">
       {/* Sticky Full-Viewport 3D Storytelling Stage */}
-      <div
-        className="sticky top-24 w-full overflow-hidden bg-[#0B0C0E] border-y border-white/10"
-        style={{ height: 'calc(100vh - 6rem)' }}
-      >
+      <div className="sticky top-16 sm:top-20 lg:top-24 w-full h-[calc(100svh-4rem)] sm:h-[calc(100svh-5rem)] lg:h-[calc(100vh-6rem)] overflow-hidden bg-[#0B0C0E] border-y border-white/10">
         {/* Subtle Studio Radial Lighting Vignette */}
         <div
           className="pointer-events-none absolute inset-0 z-0"
@@ -855,9 +885,12 @@ export default function VanguardExplodedViewer() {
         />
 
         {/* Three.js WebGL Canvas Mount */}
-        <div ref={canvasWrapperRef} className="relative z-10 w-full h-full cursor-grab active:cursor-grabbing" />
+        <div
+          ref={canvasWrapperRef}
+          className="relative z-10 w-full h-full lg:cursor-grab lg:active:cursor-grabbing"
+        />
 
-        {/* SVG 1px Leader Lines & Target Reticles Overlay */}
+        {/* Desktop SVG 1px Leader Lines & Target Reticles Overlay (lg+) */}
         <svg
           className="pointer-events-none absolute inset-0 z-20 w-full h-full hidden lg:block"
           viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}
@@ -866,7 +899,7 @@ export default function VanguardExplodedViewer() {
           {callouts.map((c) => {
             if (!c.visible) return null;
             const { xEdge, yCenter, isLeft } = getCardAnchorBox(c);
-            const elbowX = isLeft ? xEdge + 44 : xEdge - 44;
+            const elbowX = isLeft ? xEdge + 40 : xEdge - 40;
             const ax = Math.max(80, Math.min(viewportSize.width - 80, c.anchorX));
             const ay = Math.max(60, Math.min(viewportSize.height - 60, c.anchorY));
 
@@ -905,76 +938,113 @@ export default function VanguardExplodedViewer() {
           })}
         </svg>
 
-        {/* Top Bar HUD — Phase Status + CAD Format Controls */}
-        <div
-          className="pointer-events-none absolute z-30 flex flex-wrap items-center justify-between gap-4"
-          style={{ top: '1.75rem', left: '2.5rem', right: '2.5rem' }}
-        >
-          <div
-            className="pointer-events-auto flex items-center gap-4 bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl"
-            style={{ padding: '0.85rem 1.35rem' }}
+        {/* Mobile & Tablet SVG Target Reticle & Leader Line (< lg) */}
+        {activeMobileCallout && (
+          <svg
+            className="pointer-events-none absolute inset-0 z-20 w-full h-full lg:hidden"
+            viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}
+            preserveAspectRatio="none"
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#00ff41] animate-pulse" />
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#00ff41] mb-0.5">
-                SA-1 &ldquo;VANGUARD&rdquo; // PHASE 0{activePhaseIndex} OF 04
-              </p>
-              <p className="text-xs sm:text-sm font-semibold text-white tracking-wide">
-                {phases[activePhaseIndex - 1].title}{' '}
-                <span className="text-white/45 font-mono ml-2">
-                  [{Math.round(activeProgress * 100)}% EXPLODED]
-                </span>
-              </p>
+            {(() => {
+              const ax = Math.max(36, Math.min(viewportSize.width - 36, activeMobileCallout.anchorX));
+              const ay = Math.max(70, Math.min(viewportSize.height - 190, activeMobileCallout.anchorY));
+              const cardTopY = Math.max(ay + 24, viewportSize.height - 200);
+              const cardCenterX = viewportSize.width * 0.5;
+              return (
+                <g>
+                  <polyline
+                    points={`${cardCenterX},${cardTopY} ${ax},${ay}`}
+                    fill="none"
+                    stroke="#00ff41"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                  />
+                  <circle cx={ax} cy={ay} r="4" fill="#0B0C0E" stroke="#00ff41" strokeWidth="1.5" />
+                  <circle cx={ax} cy={ay} r="9" fill="none" stroke="rgba(0,255,65,0.45)" strokeWidth="1" />
+                </g>
+              );
+            })()}
+          </svg>
+        )}
+
+        {/* Top Bar HUD — Phase Status + CAD Format Controls */}
+        <div className="pointer-events-none absolute z-30 top-3 sm:top-5 lg:top-7 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="pointer-events-auto flex items-center justify-between sm:justify-start gap-3 bg-black/75 backdrop-blur-xl border border-white/10 rounded-xl px-3.5 py-2.5 sm:px-5 sm:py-3">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#00ff41] animate-pulse shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.18em] sm:tracking-[0.22em] text-[#00ff41] truncate">
+                  SA-1 VANGUARD // PHASE 0{activePhaseIndex}/04
+                </p>
+                <p className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  {phases[activePhaseIndex - 1].title}
+                </p>
+              </div>
             </div>
+            <span className="text-[10px] sm:text-xs text-white/55 font-mono shrink-0 ml-2">
+              {Math.round(activeProgress * 100)}%
+            </span>
           </div>
 
           {/* Interactive CAD Layer & Callout Switcher */}
-          <div
-            className="pointer-events-auto flex flex-wrap items-center gap-2 bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl"
-            style={{ padding: '0.5rem' }}
-          >
+          <div className="pointer-events-auto flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 bg-black/75 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 overflow-x-auto hide-scrollbar">
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <button
+                type="button"
+                onClick={() => setRenderMode('hybrid')}
+                className={`rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
+                  renderMode === 'hybrid'
+                    ? 'bg-[#00ff41] text-black font-bold'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Studio .GLB
+              </button>
+              <button
+                type="button"
+                onClick={() => setRenderMode('step-overlay')}
+                className={`rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
+                  renderMode === 'step-overlay'
+                    ? 'bg-[#00ff41] text-black font-bold'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="sm:hidden">.GLB + .STEP</span>
+                <span className="hidden sm:inline">.GLB + .STEP B-Rep</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRenderMode('step-xray')}
+                className={`rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
+                  renderMode === 'step-xray'
+                    ? 'bg-[#00ff41] text-black font-bold'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="sm:hidden">Wireframe</span>
+                <span className="hidden sm:inline">ISO-10303 .STEP Wireframe</span>
+              </button>
+            </div>
+
+            {/* Mobile/Tablet Touch Orbit Toggle (< lg) */}
             <button
               type="button"
-              onClick={() => setRenderMode('hybrid')}
-              style={{ padding: '0.5rem 0.9rem' }}
-              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
-                renderMode === 'hybrid'
-                  ? 'bg-[#00ff41] text-black font-bold'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              onClick={() => setTouchOrbitEnabled((v) => !v)}
+              className={`lg:hidden rounded-lg px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border transition-all ${
+                touchOrbitEnabled
+                  ? 'bg-[#00ff41]/20 text-[#00ff41] border-[#00ff41]/50'
+                  : 'text-white/60 border-white/10'
               }`}
             >
-              Studio .GLB
+              {touchOrbitEnabled ? '3D Orbit: ON' : '3D Orbit'}
             </button>
-            <button
-              type="button"
-              onClick={() => setRenderMode('step-overlay')}
-              style={{ padding: '0.5rem 0.9rem' }}
-              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
-                renderMode === 'step-overlay'
-                  ? 'bg-[#00ff41] text-black font-bold'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              .GLB + .STEP B-Rep
-            </button>
-            <button
-              type="button"
-              onClick={() => setRenderMode('step-xray')}
-              style={{ padding: '0.5rem 0.9rem' }}
-              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
-                renderMode === 'step-xray'
-                  ? 'bg-[#00ff41] text-black font-bold'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              ISO-10303 .STEP Wireframe
-            </button>
-            <span className="h-4 w-px bg-white/15 mx-1" />
+
+            {/* Desktop All-Callout Toggle (lg+) */}
+            <span className="hidden lg:inline h-4 w-px bg-white/15 mx-1" />
             <button
               type="button"
               onClick={() => setShowAllCallouts((v) => !v)}
-              style={{ padding: '0.5rem 0.9rem' }}
-              className={`rounded-lg text-[11px] font-mono uppercase tracking-wider transition-all ${
+              className={`hidden lg:inline-block rounded-lg px-3.5 py-2 text-[11px] font-mono uppercase tracking-wider whitespace-nowrap transition-all ${
                 showAllCallouts
                   ? 'bg-white/20 text-[#00ff41] border border-[#00ff41]/40'
                   : 'text-white/60 hover:text-white'
@@ -985,7 +1055,7 @@ export default function VanguardExplodedViewer() {
           </div>
         </div>
 
-        {/* 4 Glassmorphism Callout Cards */}
+        {/* Desktop 4 Glassmorphism Callout Cards (lg+) */}
         <div className="pointer-events-none absolute inset-0 z-30 hidden lg:block">
           {callouts.map((c) => {
             const isLeft = c.cardSide === 'left';
@@ -994,13 +1064,11 @@ export default function VanguardExplodedViewer() {
               <div
                 key={c.id}
                 style={{
-                  width: '320px',
-                  left: isLeft ? '56px' : undefined,
-                  right: !isLeft ? '56px' : undefined,
-                  top: isTop ? '18%' : '54%',
-                  padding: '1.35rem 1.5rem',
+                  top: isTop ? '18%' : '52%',
                 }}
-                className={`pointer-events-auto absolute transition-all duration-500 rounded-2xl backdrop-blur-xl border ${
+                className={`pointer-events-auto absolute w-[280px] xl:w-[320px] ${
+                  isLeft ? 'left-7 xl:left-14' : 'right-7 xl:right-14'
+                } p-5 xl:p-6 transition-all duration-500 rounded-2xl backdrop-blur-xl border ${
                   c.visible
                     ? 'opacity-100 translate-y-0'
                     : 'opacity-0 translate-y-3 pointer-events-none'
@@ -1010,14 +1078,11 @@ export default function VanguardExplodedViewer() {
                     : 'bg-black/60 border-white/15'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center justify-between gap-2 mb-2.5">
                   <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#00ff41] font-bold">
                     CALLOUT {c.number}
                   </span>
-                  <span
-                    className="text-[10px] font-mono text-white/55 bg-white/5 rounded border border-white/10"
-                    style={{ padding: '0.15rem 0.5rem' }}
-                  >
+                  <span className="text-[9px] xl:text-[10px] font-mono text-white/55 bg-white/5 rounded border border-white/10 px-2 py-0.5 truncate">
                     {c.displacementLabel}
                   </span>
                 </div>
@@ -1025,10 +1090,7 @@ export default function VanguardExplodedViewer() {
                   {c.title}
                 </h3>
                 <p className="text-xs font-mono text-[#00ff41]/90 mb-3.5">{c.subtitle}</p>
-                <ul
-                  className="space-y-2 border-t border-white/10"
-                  style={{ paddingTop: '0.75rem' }}
-                >
+                <ul className="space-y-2 border-t border-white/10 pt-3">
                   {c.specs.map((s, idx) => (
                     <li
                       key={idx}
@@ -1044,46 +1106,75 @@ export default function VanguardExplodedViewer() {
           })}
         </div>
 
-        {/* Bottom Dock — 4-Phase Interactive Scrubber & Live Z/Y Axis Telemetry */}
-        <div
-          className="pointer-events-auto absolute z-30"
-          style={{ bottom: '1.75rem', left: '2.5rem', right: '2.5rem' }}
-        >
-          <div
-            className="max-w-6xl mx-auto bg-black/80 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl"
-            style={{ padding: '1.25rem 1.5rem' }}
-          >
-            {/* Phase Stepper Buttons */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-              {phases.map((ph) => {
-                const isCurrent = activePhaseIndex === ph.phase;
-                return (
-                  <button
-                    key={ph.phase}
-                    type="button"
-                    onClick={() => jumpToProgress(ph.targetP)}
-                    style={{ padding: '0.85rem 1rem' }}
-                    className={`text-left rounded-xl border transition-all ${
-                      isCurrent
-                        ? 'bg-[#00ff41]/10 border-[#00ff41]/60'
-                        : 'bg-white/[0.02] border-white/10 hover:border-white/25'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider mb-1">
-                      <span className={isCurrent ? 'text-[#00ff41] font-bold' : 'text-white/50'}>
-                        Phase 0{ph.phase} ({ph.range})
-                      </span>
-                      {isCurrent && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00ff41]" />
-                      )}
-                    </div>
-                    <p className="text-xs font-bold text-white truncate">{ph.title}</p>
-                    <p className="text-[10px] font-mono text-white/50 truncate mt-1">
-                      {ph.metric}
+        {/* Bottom Dock — Mobile Active Callout Card (< lg) + 4-Phase Interactive Stepper */}
+        <div className="pointer-events-auto absolute z-30 bottom-3 sm:bottom-5 lg:bottom-7 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10">
+          <div className="max-w-6xl mx-auto space-y-2.5 sm:space-y-3">
+            {/* Mobile & Tablet Active Callout Card (< lg) */}
+            {activeMobileCallout && (
+              <div className="lg:hidden bg-black/85 backdrop-blur-xl border border-[#00ff41]/40 rounded-xl p-3.5 sm:p-4 shadow-2xl">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#00ff41] font-bold">
+                    CALLOUT {activeMobileCallout.number} // {activeMobileCallout.subtitle}
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] font-mono text-white/60 bg-white/5 rounded border border-white/10 px-2 py-0.5 shrink-0">
+                    {activeMobileCallout.displacementLabel.split('/')[0]}
+                  </span>
+                </div>
+                <p className="text-sm sm:text-base font-bold text-white mb-1.5">
+                  {activeMobileCallout.title}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 pt-1.5 border-t border-white/10">
+                  {activeMobileCallout.specs.slice(0, 2).map((s, idx) => (
+                    <p
+                      key={idx}
+                      className="text-[11px] text-white/75 flex items-center gap-2 truncate"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00ff41] shrink-0" />
+                      <span className="truncate">{s}</span>
                     </p>
-                  </button>
-                );
-              })}
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4-Phase Interactive Stepper */}
+            <div className="bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-2 sm:p-4 shadow-2xl">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3.5">
+                {phases.map((ph) => {
+                  const isCurrent = activePhaseIndex === ph.phase;
+                  return (
+                    <button
+                      key={ph.phase}
+                      type="button"
+                      onClick={() => jumpToProgress(ph.targetP)}
+                      className={`text-left rounded-lg sm:rounded-xl p-2 sm:p-3.5 border transition-all ${
+                        isCurrent
+                          ? 'bg-[#00ff41]/15 border-[#00ff41]/60'
+                          : 'bg-white/[0.02] border-white/10 hover:border-white/25'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-mono uppercase tracking-wider mb-0.5 sm:mb-1">
+                        <span className={isCurrent ? 'text-[#00ff41] font-bold' : 'text-white/50'}>
+                          <span className="sm:hidden">0{ph.phase}</span>
+                          <span className="hidden sm:inline">
+                            Phase 0{ph.phase} ({ph.range})
+                          </span>
+                        </span>
+                        {isCurrent && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00ff41] shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-[11px] sm:text-xs font-bold text-white truncate">
+                        <span className="sm:hidden">{ph.shortTitle}</span>
+                        <span className="hidden sm:inline">{ph.title}</span>
+                      </p>
+                      <p className="hidden md:block text-[10px] font-mono text-white/50 truncate mt-1">
+                        {ph.metric}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

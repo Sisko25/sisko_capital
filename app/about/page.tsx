@@ -6,35 +6,33 @@ export default function AboutPage() {
     <>
       {/* Hero Banner */}
       <section
-        className="relative bg-black"
+        className="relative bg-black min-h-[380px] sm:min-h-[480px] lg:min-h-[560px]"
         style={{
           backgroundImage: "url('/images/about-hero.jpg')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          minHeight: '580px',
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/60 to-black/30" />
-        <div className="relative z-10 site-container flex flex-col justify-end" style={{ minHeight: '580px', paddingBottom: '4.5rem' }}>
-          <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-6">Who We Are</p>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-[1.2] max-w-3xl tracking-tight">
+        <div className="relative z-10 site-container flex flex-col justify-end min-h-[380px] sm:min-h-[480px] lg:min-h-[560px] pb-10 sm:pb-14 lg:pb-18 pt-16">
+          <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-4 sm:mb-6">Who We Are</p>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-[1.2] max-w-3xl tracking-tight">
             Pioneering the future of autonomous aerial intelligence.
           </h1>
         </div>
       </section>
 
       {/* Mission & Vision Section */}
-      <section className="py-28 md:py-40 bg-[#0a0a0a]">
+      <section className="py-16 sm:py-24 lg:py-36 bg-[#0a0a0a]">
         <div className="site-container">
-          <div className="grid md:grid-cols-2 gap-10 md:gap-14 items-start">
-            
+          <div className="grid md:grid-cols-2 gap-10 sm:gap-12 lg:gap-16 items-start">
             {/* Our Mission */}
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-6">
               <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Our Mission</p>
               <h2 className="text-2xl sm:text-3xl font-bold text-white leading-snug tracking-tight">
                 Protecting Singapore through innovation.
               </h2>
-              <p className="text-white/70 text-base leading-relaxed pt-2">
+              <p className="text-white/70 text-sm sm:text-base leading-relaxed pt-1">
                 Sisko Aerospace LLP is a Singapore-based defense technology company dedicated to
                 developing advanced AI-powered detection and reconnaissance systems. Founded with the
                 vision of strengthening Singapore&apos;s national defense capabilities, we combine
@@ -44,12 +42,12 @@ export default function AboutPage() {
             </div>
 
             {/* Our Vision */}
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-6">
               <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Our Vision</p>
               <h2 className="text-2xl sm:text-3xl font-bold text-white leading-snug tracking-tight">
                 A smarter, safer nation.
               </h2>
-              <p className="text-white/70 text-base leading-relaxed pt-2">
+              <p className="text-white/70 text-sm sm:text-base leading-relaxed pt-1">
                 We envision a future where autonomous AI systems work alongside Singapore&apos;s
                 armed forces to provide real-time situational awareness across land, sea, and air.
                 Our flagship platform, A.V.I.A.R.S, represents a paradigm shift in how nations
@@ -57,7 +55,6 @@ export default function AboutPage() {
                 AI-driven intelligence that anticipates threats before they materialize.
               </p>
             </div>
-
           </div>
         </div>
       </section>
@@ -68,14 +65,14 @@ export default function AboutPage() {
       </div>
 
       {/* Core Values */}
-      <section className="py-28 md:py-40 bg-[#0a0a0a]">
+      <section className="py-16 sm:py-24 lg:py-36 bg-[#0a0a0a]">
         <div className="site-container">
-          <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20 space-y-4">
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16 lg:mb-20 space-y-3 sm:space-y-4">
             <p className="text-[#00ff41] uppercase tracking-[0.2em] text-xs font-semibold">Core Values</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">What drives us forward.</h2>
+            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">What drives us forward.</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 md:gap-10">
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             {[
               {
                 number: '01',
@@ -98,12 +95,12 @@ export default function AboutPage() {
             ].map((value) => (
               <div
                 key={value.number}
-                className="bg-[#141414] border border-white/10 p-10 sm:p-12 md:p-14 rounded-lg hover:border-[#00ff41]/40 transition-all duration-300 group"
+                className="bg-[#141414] border border-white/10 p-6 sm:p-10 lg:p-12 rounded-xl hover:border-[#00ff41]/40 transition-all duration-300 group"
               >
-                <span className="text-4xl font-mono font-bold text-[#00ff41]/40 group-hover:text-[#00ff41] transition-colors duration-300">
+                <span className="text-3xl sm:text-4xl font-mono font-bold text-[#00ff41]/40 group-hover:text-[#00ff41] transition-colors duration-300">
                   {value.number}
                 </span>
-                <h3 className="text-xl font-bold text-white mt-4 mb-6">{value.title}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-white mt-3 sm:mt-4 mb-4 sm:mb-5">{value.title}</h3>
                 <p className="text-white/65 text-sm leading-relaxed">{value.description}</p>
               </div>
             ))}
@@ -112,18 +109,18 @@ export default function AboutPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-24 md:py-32 bg-[#141414] border-y border-white/10">
+      <section className="py-16 sm:py-24 lg:py-32 bg-[#141414] border-y border-white/10">
         <div className="site-container">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-10 text-center">
             {[
               { stat: '2026', label: 'Founded' },
               { stat: 'SG', label: 'Headquarters' },
               { stat: 'AVIARS', label: 'Flagship Platform' },
               { stat: '24/7', label: 'Operational Readiness' },
             ].map((item) => (
-              <div key={item.label} className="space-y-1">
-                <p className="text-3xl sm:text-4xl font-extrabold text-[#00ff41] font-mono tracking-tight">{item.stat}</p>
-                <p className="text-xs uppercase tracking-widest text-white/50 font-medium">{item.label}</p>
+              <div key={item.label} className="space-y-1.5 p-3 sm:p-0">
+                <p className="text-2xl sm:text-4xl font-extrabold text-[#00ff41] font-mono tracking-tight">{item.stat}</p>
+                <p className="text-[11px] sm:text-xs uppercase tracking-widest text-white/50 font-medium">{item.label}</p>
               </div>
             ))}
           </div>
@@ -131,25 +128,25 @@ export default function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-28 md:py-40 bg-[#0a0a0a] text-center">
-        <div className="site-container space-y-6">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+      <section className="py-16 sm:py-24 lg:py-36 bg-[#0a0a0a] text-center">
+        <div className="site-container space-y-5 sm:space-y-6">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
             Explore our flagship platform.
           </h2>
-          <p className="text-white/60 text-base max-w-2xl mx-auto leading-relaxed">
+          <p className="text-white/60 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
             Learn how A.V.I.A.R.S is redefining autonomous aerial reconnaissance with real-time
             AI-powered detection, sensor fusion, and edge computing.
           </p>
-          <div className="flex justify-center gap-6 flex-wrap pt-6">
+          <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-4 sm:gap-6 pt-4 sm:pt-6 max-w-md sm:max-w-none mx-auto">
             <Link
               href="/aviars"
-              className="bg-[#00ff41] text-black px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-colors"
+              className="w-full sm:w-auto text-center bg-[#00ff41] text-black px-8 sm:px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-colors"
             >
               About AVIARS
             </Link>
             <Link
               href="/why-sisko"
-              className="border border-white/30 text-white px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
+              className="w-full sm:w-auto text-center border border-white/30 text-white px-8 sm:px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white hover:text-black transition-colors"
             >
               Why Sisko Aerospace?
             </Link>

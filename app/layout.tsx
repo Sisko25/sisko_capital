@@ -1,11 +1,18 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#0a0a0a",
+}
 
 export const metadata: Metadata = {
   title: "Sisko Aerospace LLP | AI Detection Systems",
@@ -19,9 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen`}>
+      <body className={`${inter.className} bg-[#0a0a0a] text-white min-h-screen antialiased`}>
         <Header />
-        <main className="pt-24 lg:pt-28" style={{ paddingTop: '6rem' }}>{children}</main>
+        <main className="pt-16 sm:pt-20 lg:pt-24">{children}</main>
         <Footer />
       </body>
     </html>

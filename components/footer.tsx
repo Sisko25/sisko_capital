@@ -5,20 +5,20 @@ import { Instagram, Youtube, Linkedin } from 'lucide-react'
 export default function Footer() {
   return (
     <footer className="bg-[#0a0a0a] border-t border-white/10">
-      <div className="site-container py-24 md:py-32">
+      <div className="site-container py-16 sm:py-24 lg:py-32">
         {/* Top row */}
-        <div className="flex flex-col lg:flex-row justify-between gap-16 lg:gap-24">
+        <div className="flex flex-col lg:flex-row justify-between gap-12 sm:gap-16 lg:gap-24">
           {/* Logo + Info + Socials */}
-          <div className="flex flex-col gap-6 max-w-sm">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-5 sm:gap-6 max-w-sm">
+            <div className="flex items-center gap-3.5 sm:gap-4">
               <Image
                 src="/images/sisko-aerospace-logo.jpg"
                 width={48}
                 height={48}
                 alt="Sisko Aerospace"
-                className="invert rounded-lg shadow-md"
+                className="w-10 h-10 sm:w-12 sm:h-12 invert rounded-lg shadow-md"
               />
-              <span className="text-white text-xl font-bold tracking-wide">
+              <span className="text-white text-lg sm:text-xl font-bold tracking-wide">
                 Sisko Aerospace
               </span>
             </div>
@@ -26,7 +26,7 @@ export default function Footer() {
               Sovereign AI-powered aerial intelligence, real-time multi-spectral sensor fusion, and autonomous defense solutions engineered in Singapore.
             </p>
             {/* Social Icons */}
-            <div className="flex items-center gap-4 pt-3">
+            <div className="flex items-center gap-3.5 sm:gap-4 pt-2">
               <a
                 href="https://www.instagram.com/sisko.aero/"
                 target="_blank"
@@ -58,20 +58,20 @@ export default function Footer() {
           </div>
 
           {/* Nav columns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-12 lg:gap-16">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 sm:gap-12 lg:gap-16">
             {/* Column 1 — Platform */}
             <div>
-              <h4 className="uppercase text-xs font-bold tracking-[0.2em] text-[#00ff41] mb-6">
+              <h4 className="uppercase text-xs font-bold tracking-[0.2em] text-[#00ff41] mb-4 sm:mb-6">
                 Platform
               </h4>
-              <div className="space-y-3.5">
-                <Link href="/about" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+              <div className="space-y-3">
+                <Link href="/about" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   About Us
                 </Link>
-                <Link href="/aviars" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                <Link href="/aviars" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   AVIARS
                 </Link>
-                <Link href="/vanguard" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                <Link href="/vanguard" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   SA-1 Vanguard
                 </Link>
               </div>
@@ -79,35 +79,35 @@ export default function Footer() {
 
             {/* Column 2 — Company */}
             <div>
-              <h4 className="uppercase text-xs font-bold tracking-[0.2em] text-[#00ff41] mb-6">
+              <h4 className="uppercase text-xs font-bold tracking-[0.2em] text-[#00ff41] mb-4 sm:mb-6">
                 Company
               </h4>
-              <div className="space-y-3.5">
-                <Link href="/why-sisko" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+              <div className="space-y-3">
+                <Link href="/why-sisko" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   Why Sisko?
                 </Link>
-                <Link href="/singapore" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                <Link href="/singapore" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   Why Singapore?
                 </Link>
-                <a href="mailto:sisko@duck.com?subject=Procurement%20Inquiry" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                <a href="mailto:sisko@duck.com?subject=Procurement%20Inquiry" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   Procurement
                 </a>
               </div>
             </div>
 
             {/* Column 3 — Connect */}
-            <div>
-              <h4 className="uppercase text-xs font-bold tracking-[0.2em] text-[#00ff41] mb-6">
+            <div className="col-span-2 sm:col-span-1 pt-2 sm:pt-0">
+              <h4 className="uppercase text-xs font-bold tracking-[0.2em] text-[#00ff41] mb-4 sm:mb-6">
                 Connect
               </h4>
-              <div className="space-y-3.5">
-                <a href="https://www.instagram.com/sisko.aero/" target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+              <div className="flex flex-row sm:flex-col gap-6 sm:gap-0 sm:space-y-3">
+                <a href="https://www.instagram.com/sisko.aero/" target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   Instagram
                 </a>
-                <a href="https://www.youtube.com/@SiskoAerospacellp" target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                <a href="https://www.youtube.com/@SiskoAerospacellp" target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   YouTube
                 </a>
-                <a href="https://sg.linkedin.com/company/sisko-capital" target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                <a href="https://sg.linkedin.com/company/sisko-capital" target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-[#00ff41] transition block py-0.5">
                   LinkedIn
                 </a>
               </div>
@@ -115,20 +115,20 @@ export default function Footer() {
           </div>
 
           {/* NDP 61 Badge */}
-          <div className="flex flex-col items-start lg:items-end justify-start">
+          <div className="flex flex-row lg:flex-col items-center lg:items-end justify-start gap-4 lg:gap-0 pt-2 lg:pt-0">
             <Image
               src="/images/ndp61.png"
               width={90}
               height={90}
               alt="NDP 61"
-              className="rounded-xl opacity-90 shadow-xl border border-white/10"
+              className="w-16 h-16 sm:w-20 sm:h-20 lg:w-[90px] lg:h-[90px] rounded-xl opacity-90 shadow-xl border border-white/10"
             />
-            <span className="text-xs uppercase tracking-widest text-[#c8102e] font-bold mt-3">Majulah Singapura</span>
+            <span className="text-xs uppercase tracking-widest text-[#c8102e] font-bold lg:mt-3">Majulah Singapura</span>
           </div>
         </div>
 
         {/* Bottom row */}
-        <div className="mt-20 pt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="mt-14 sm:mt-20 pt-8 sm:pt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <p className="text-xs text-white/40">
             © 2026 Sisko Aerospace LLP. All rights reserved.
           </p>
