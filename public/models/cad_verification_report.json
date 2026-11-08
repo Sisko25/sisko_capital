@@ -1,0 +1,262 @@
+{
+  "model_name": "Sisko Tactical Stealth Micro-UAV (Urban Reconnaissance)",
+  "units": "millimeters (mm)",
+  "overall_envelope_mm": {
+    "length_x_mm": 160.0,
+    "span_y_mm": 180.0,
+    "height_z_mm": 42.0,
+    "bbox_min_mm": [
+      -80.0,
+      -90.0,
+      -21.0
+    ],
+    "bbox_max_mm": [
+      80.0,
+      90.0,
+      21.0
+    ]
+  },
+  "engineering_specifications": {
+    "wall_thickness_mm": 2.0,
+    "parting_groove_mm": 0.4,
+    "chine_fillet_radius_range_mm": [
+      0.8,
+      1.5
+    ],
+    "duct_internal_diameter_mm": 45.0,
+    "rotor_blade_count": 5,
+    "gimbal_sphere_diameter_mm": 24.0,
+    "gimbal_dynamic_clearance_gap_mm": 0.8,
+    "vio_aperture_diameter_mm": 3.0,
+    "tof_port_diameter_mm": 2.0,
+    "dorsal_exhaust_louver_angle_deg": 30.0,
+    "gnss_patch_deboss_rim_mm": 0.3,
+    "skid_pad_ground_clearance_mm": 5.0
+  },
+  "exported_files": {
+    "step_cad_assembly": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/sisko_stealth_uav_cad.step",
+    "quad_dominant_manifold_obj": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/sisko_stealth_uav_manifold.obj",
+    "material_library_mtl": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/sisko_stealth_uav_manifold.mtl",
+    "ascii_fbx_74": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/sisko_stealth_uav_manifold.fbx",
+    "binary_gltf_glb": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/sisko_stealth_uav.glb",
+    "combined_watertight_stl": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/sisko_stealth_uav_assembly.stl",
+    "individual_components_dir": "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/exports/components",
+    "blueprint_renders": [
+      "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/renders/uav_orthographic_blueprint.png",
+      "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/renders/uav_exploded_assembly.png",
+      "/Users/saiskandaguntury/sisko_stocksense/sisko_aerospace/renders/uav_closeups_detail.png"
+    ]
+  },
+  "components": {
+    "Main_Hull_Top": {
+      "vertices": 19374,
+      "triangles": 38804,
+      "quad_faces": 10425,
+      "tri_faces": 17954,
+      "total_polygons": 28379,
+      "tris_merged_to_quads_pct": 53.73,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": -28,
+      "volume_mm3": 79809.59,
+      "surface_area_mm2": 64168.75,
+      "bbox_min_mm": [
+        -80.0,
+        -90.0,
+        0.0
+      ],
+      "bbox_max_mm": [
+        80.0,
+        90.0,
+        21.0
+      ],
+      "dimensions_xyz_mm": [
+        160.0,
+        180.0,
+        21.0
+      ]
+    },
+    "Main_Hull_Ventral": {
+      "vertices": 21273,
+      "triangles": 42654,
+      "quad_faces": 11912,
+      "tri_faces": 18830,
+      "total_polygons": 30742,
+      "tris_merged_to_quads_pct": 55.85,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": -54,
+      "volume_mm3": 94468.85,
+      "surface_area_mm2": 70393.93,
+      "bbox_min_mm": [
+        -80.0,
+        -90.0,
+        -21.0
+      ],
+      "bbox_max_mm": [
+        80.0,
+        90.0,
+        0.0
+      ],
+      "dimensions_xyz_mm": [
+        160.0,
+        180.0,
+        21.0
+      ]
+    },
+    "Ducted_Propellers_L1_L2_R1_R2": {
+      "vertices": 11810,
+      "triangles": 23620,
+      "quad_faces": 9700,
+      "tri_faces": 4220,
+      "total_polygons": 13920,
+      "tris_merged_to_quads_pct": 82.13,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": 0,
+      "volume_mm3": 5186.63,
+      "surface_area_mm2": 7698.44,
+      "bbox_min_mm": [
+        -57.341,
+        -73.85,
+        -8.3
+      ],
+      "bbox_max_mm": [
+        53.362,
+        73.85,
+        2.9
+      ],
+      "dimensions_xyz_mm": [
+        110.704,
+        147.7,
+        11.2
+      ]
+    },
+    "Gimbal_Sphere_Assembly": {
+      "vertices": 2365,
+      "triangles": 4730,
+      "quad_faces": 1867,
+      "tri_faces": 996,
+      "total_polygons": 2863,
+      "tris_merged_to_quads_pct": 78.94,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": 0,
+      "volume_mm3": 3070.97,
+      "surface_area_mm2": 2946.69,
+      "bbox_min_mm": [
+        50.008,
+        -12.3,
+        -12.0
+      ],
+      "bbox_max_mm": [
+        70.763,
+        12.3,
+        12.0
+      ],
+      "dimensions_xyz_mm": [
+        20.756,
+        24.6,
+        24.0
+      ]
+    },
+    "Primary_4K_Lens": {
+      "vertices": 2001,
+      "triangles": 3998,
+      "quad_faces": 1889,
+      "tri_faces": 220,
+      "total_polygons": 2109,
+      "tris_merged_to_quads_pct": 94.5,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": 2,
+      "volume_mm3": 643.7,
+      "surface_area_mm2": 1179.76,
+      "bbox_min_mm": [
+        66.5,
+        -9.1,
+        -9.1
+      ],
+      "bbox_max_mm": [
+        71.55,
+        9.1,
+        9.1
+      ],
+      "dimensions_xyz_mm": [
+        5.05,
+        18.2,
+        18.2
+      ]
+    },
+    "Sensor_Array_Windows": {
+      "vertices": 1610,
+      "triangles": 3208,
+      "quad_faces": 1592,
+      "tri_faces": 24,
+      "total_polygons": 1616,
+      "tris_merged_to_quads_pct": 99.25,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": 6,
+      "volume_mm3": 232.56,
+      "surface_area_mm2": 458.58,
+      "bbox_min_mm": [
+        13.65,
+        -33.135,
+        -15.824
+      ],
+      "bbox_max_mm": [
+        66.678,
+        33.135,
+        14.021
+      ],
+      "dimensions_xyz_mm": [
+        53.028,
+        66.269,
+        29.845
+      ]
+    },
+    "Fasteners_Hardware": {
+      "vertices": 6912,
+      "triangles": 13824,
+      "quad_faces": 6912,
+      "tri_faces": 0,
+      "total_polygons": 6912,
+      "tris_merged_to_quads_pct": 100.0,
+      "is_watertight": true,
+      "is_winding_consistent": true,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0,
+      "euler_number": 0,
+      "volume_mm3": 56.67,
+      "surface_area_mm2": 1417.91,
+      "bbox_min_mm": [
+        -59.7,
+        -53.445,
+        -15.85
+      ],
+      "bbox_max_mm": [
+        49.7,
+        53.445,
+        19.967
+      ],
+      "dimensions_xyz_mm": [
+        109.4,
+        106.89,
+        35.817
+      ]
+    }
+  }
+}

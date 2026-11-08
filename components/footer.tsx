@@ -71,6 +71,9 @@ export default function Footer() {
                 <Link href="/aviars" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
                   AVIARS
                 </Link>
+                <Link href="/vanguard" className="text-sm text-white/70 hover:text-[#00ff41] transition block">
+                  SA-1 Vanguard
+                </Link>
               </div>
             </div>
 

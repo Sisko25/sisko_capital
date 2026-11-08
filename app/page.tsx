@@ -44,13 +44,14 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-8 md:gap-14 pt-4">
             <Link href="/about" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">About Us</Link>
             <Link href="/aviars" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">About A.V.I.A.R.S</Link>
+            <Link href="/vanguard" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">SA-1 &ldquo;Vanguard&rdquo;</Link>
             <Link href="/why-sisko" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">Why Sisko Aerospace?</Link>
             <Link href="/singapore" className="text-sm uppercase tracking-widest text-white/70 hover:text-[#00ff41] transition-colors border-b border-white/20 pb-1.5 hover:border-[#00ff41]">Why AVIARS for Singapore</Link>
           </div>
         </div>
       </section>
 
-      {/* SECTION 3 — Feature Carousel (4 horizontal cards) */}
+      {/* SECTION 3 — Feature Carousel (5 horizontal cards) */}
       <section className="py-28 md:py-36 bg-[#141414] overflow-hidden border-y border-white/10">
         <div className="site-container mb-10">
           <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-3">Capabilities &amp; Platforms</p>
@@ -58,6 +59,7 @@ export default function Home() {
         </div>
         <div style={{ display: 'flex', overflowX: 'auto', gap: '2.5rem', padding: '0 2.5rem', scrollSnapType: 'x mandatory' }} className="hide-scrollbar">
           {[
+            { category: 'Tactical Stealth Micro-UAV', title: 'SA-1 "Vanguard"', image: '/images/card-drone-future.jpg', href: '/vanguard' },
             { category: 'AVIARS Platform', title: 'AI-Powered Detection', image: '/images/card-ai-detection.jpg', href: '/aviars' },
             { category: 'Edge Computing', title: 'Real-Time Sensor Fusion', image: '/images/card-sensor-fusion.jpg', href: '/aviars' },
             { category: 'Regional Defense', title: "Singapore's Next-Gen Defense", image: '/images/card-singapore-defense.jpg', href: '/singapore' },

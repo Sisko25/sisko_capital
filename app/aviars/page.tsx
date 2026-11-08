@@ -176,17 +176,17 @@ export default function AviarsPage() {
       <section className="py-28 md:py-40 bg-[#141414] text-center border-t border-white/10">
         <div className="site-container space-y-8">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
-            Learn why Sisko Aerospace is the ideal partner.
+            Experience A.V.I.A.R.S. onboard the SA-1 &ldquo;Vanguard&rdquo;.
           </h2>
           <p className="text-white/60 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Discover our commitment to defense engineering excellence, sovereign technology ownership, and agile development.
+            Explore the interactive 3D exploded view of our low-observable tactical micro-UAV with native A.V.I.A.R.S. edge autonomy.
           </p>
           <div className="flex justify-center gap-6 flex-wrap pt-6">
             <Link
-              href="/why-sisko"
+              href="/vanguard"
               className="bg-[#00ff41] text-black px-10 py-4 font-bold uppercase tracking-wider text-xs rounded hover:bg-white transition-all shadow-lg hover:shadow-[0_0_24px_rgba(0,255,65,0.4)]"
             >
-              Why Sisko Aerospace?
+              Explore SA-1 &ldquo;Vanguard&rdquo;
             </Link>
             <a
               href="mailto:sisko@duck.com?subject=AVIARS%20Technical%20Inquiry"

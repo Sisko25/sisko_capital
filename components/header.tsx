@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 const navLinks = [
   { label: 'About Us', href: '/about' },
   { label: 'About A.V.I.A.R.S', href: '/aviars' },
+  { label: 'SA-1 Vanguard', href: '/vanguard' },
   { label: 'Why Sisko Aerospace?', href: '/why-sisko' },
   { label: 'Why AVIARS for Singapore', href: '/singapore' },
 ];
