@@ -1,29 +1,50 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import AviarsBattlefieldViewer from '@/components/aviars-battlefield-viewer'
 
 export default function AviarsPage() {
   return (
     <>
-      {/* Hero Banner */}
-      <section
-        className="relative bg-black min-h-[380px] sm:min-h-[480px] lg:min-h-[560px]"
-        style={{
-          backgroundImage: "url('/images/aviars-hero.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/60 to-black/30" />
-        <div className="relative z-10 site-container flex flex-col justify-end min-h-[380px] sm:min-h-[480px] lg:min-h-[560px] pb-10 sm:pb-14 lg:pb-18 pt-16">
-          <p className="text-[#00ff41] uppercase tracking-[0.25em] text-xs font-semibold mb-4 sm:mb-6">Flagship Technology</p>
-          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white leading-none tracking-tight mb-4 sm:mb-6">
+      {/* Hero Header — Compact Luxury Intro Above Interactive 3D POV Stage */}
+      <section className="relative bg-[#07090D] border-b border-white/10 pt-10 pb-12 sm:pt-14 sm:pb-16 lg:pt-18 lg:pb-20 overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 0%, rgba(0, 255, 65, 0.08) 0%, rgba(7, 9, 13, 0) 70%)',
+          }}
+        />
+        <div className="relative z-10 site-container">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+            <div className="inline-flex items-center gap-2.5 rounded-full bg-white/[0.04] border border-white/10 px-4 py-2 w-fit">
+              <span className="w-2 h-2 rounded-full bg-[#00ff41] shrink-0" />
+              <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.22em] text-[#00ff41] font-semibold">
+                FLAGSHIP AUTONOMOUS AI ENGINE // A.V.I.A.R.S.
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs font-mono uppercase tracking-widest text-white/50">
+              SCROLL BELOW TO ENTER SA-1 CAMERA POV // LAND • AIR • NAVAL
+            </p>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white leading-none tracking-tight mb-4 sm:mb-5">
             A.V.I.A.R.S
           </h1>
-          <p className="text-base sm:text-xl md:text-2xl text-white/85 font-mono max-w-3xl leading-relaxed">
+          <p className="text-base sm:text-xl md:text-2xl text-[#00ff41] font-mono max-w-3xl leading-relaxed mb-4">
             Autonomous Video &amp; Signal Aerial Recognition Software
+          </p>
+          <p className="text-white/75 text-sm sm:text-base md:text-lg max-w-4xl leading-relaxed">
+            A.V.I.A.R.S is Sisko Aerospace&apos;s proprietary artificial intelligence engine designed
+            specifically for unmanned aerial vehicles (UAVs) and reconnaissance assets. By combining
+            multi-spectral computer vision, radio frequency (RF) signal processing, and low-latency
+            edge AI models, A.V.I.A.R.S turns raw sensor streams into actionable tactical
+            intelligence in milliseconds.
           </p>
         </div>
       </section>
+
+      {/* Interactive 3D SA-1 Drone → First-Person Camera POV Battlefield Simulator */}
+      <AviarsBattlefieldViewer />
 
       {/* Executive Summary */}
       <section className="py-16 sm:py-24 lg:py-36 bg-[#0a0a0a]">
@@ -34,10 +55,11 @@ export default function AviarsPage() {
               The brain behind next-generation autonomous flight.
             </h2>
             <p className="text-white/70 text-sm sm:text-lg md:text-xl leading-relaxed pt-1">
-              A.V.I.A.R.S is Sisko Aerospace&apos;s proprietary artificial intelligence engine designed specifically for 
-              unmanned aerial vehicles (UAVs) and reconnaissance assets. By combining multi-spectral computer vision, 
-              radio frequency (RF) signal processing, and low-latency edge AI models, A.V.I.A.R.S turns raw sensor streams 
-              into actionable tactical intelligence in milliseconds.
+              Engineered to run 100% onboard the SA-1 &ldquo;Vanguard&rdquo; without external cloud
+              dependencies, A.V.I.A.R.S. fuses 4K sapphire optical imagery, thermal infrared,
+              solid-state LiDAR, and synthetic aperture radar (SAR) streams at 120 FPS—executing
+              autonomous target recognition, GPS-denied visual-inertial navigation, and precision
+              terminal guidance in under 5 milliseconds.
             </p>
           </div>
         </div>
