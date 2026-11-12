@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import VanguardExplodedViewer from '@/components/vanguard-exploded-viewer';
 
@@ -193,7 +194,13 @@ export default function VanguardPage() {
       </section>
 
       {/* SECTION 2 — Apple-Style Interactive 4-Phase Scroll Exploded View */}
-      <VanguardExplodedViewer />
+      <Suspense
+        fallback={
+          <div className="w-full h-[calc(100svh-4rem)] sm:h-[calc(100svh-5rem)] lg:h-[calc(100vh-6rem)] bg-[#0B0C0E] border-b border-white/10" />
+        }
+      >
+        <VanguardExplodedViewer />
+      </Suspense>
 
       {/* SECTION 3 — 4-Subsystem Engineering Deep Dive */}
       <section className="bg-[#0B0C0E] border-b border-white/10 py-16 sm:py-24 lg:py-36">

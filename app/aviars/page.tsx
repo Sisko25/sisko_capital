@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import AviarsBattlefieldViewer from '@/components/aviars-battlefield-viewer'
@@ -44,7 +45,13 @@ export default function AviarsPage() {
       </section>
 
       {/* Interactive 3D SA-1 Drone → First-Person Camera POV Battlefield Simulator */}
-      <AviarsBattlefieldViewer />
+      <Suspense
+        fallback={
+          <div className="w-full h-[calc(100svh-4rem)] sm:h-[calc(100svh-5rem)] lg:h-[calc(100vh-6rem)] bg-[#090B10] border-y border-white/10" />
+        }
+      >
+        <AviarsBattlefieldViewer />
+      </Suspense>
 
       {/* Executive Summary */}
       <section className="py-16 sm:py-24 lg:py-36 bg-[#0a0a0a]">

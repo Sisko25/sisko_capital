@@ -605,10 +605,15 @@ export default function AviarsBattlefieldViewer() {
     // Start zoomed out at an elevated 3/4 studio angle so the full SA-1 Vanguard looks hyper-realistic
     camera.position.set(240, 155, 340);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+    } catch {
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
