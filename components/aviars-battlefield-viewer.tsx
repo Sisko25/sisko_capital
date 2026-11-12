@@ -10,6 +10,8 @@ type MissionMode = 'recon' | 'attack';
 interface TargetSpec {
   id: string;
   code: string;
+  sector: ScenarioType;
+  sectorLabel: string;
   name: string;
   classification: string;
   telemetryRecon: string;
@@ -20,6 +22,7 @@ interface TargetSpec {
   componentName: string;
   componentSpec: string;
   worldPos: [number, number, number];
+  scrollRange: [number, number];
 }
 
 interface ProjectedTarget extends TargetSpec {
@@ -30,193 +33,133 @@ interface ProjectedTarget extends TargetSpec {
   isPrimaryLock: boolean;
 }
 
-const SCENARIO_CONFIGS: Record<
-  ScenarioType,
+const MISSION_TARGETS: TargetSpec[] = [
+  // =========================================================================
+  // SECTOR 01: LAND // URBAN & GROUND BATTLEFIELD (Scroll 16% -> 44%)
+  // =========================================================================
   {
-    label: string;
-    shortLabel: string;
-    sectorName: string;
-    altitudeLabel: string;
-    environmentDesc: string;
-    targets: [TargetSpec, TargetSpec, TargetSpec];
-    secondaryLabels: string[];
-  }
-> = {
-  land: {
-    label: 'Land // Urban Battlefield',
-    shortLabel: 'Land',
-    sectorName: 'SECTOR 01 // CONTESTED URBAN CORRIDOR (GPS-DENIED)',
-    altitudeLabel: 'ALT: 42.5 M AGL // URBAN CANYON',
-    environmentDesc: 'Dense urban structures, thermal smoke plumes & active RF jamming',
-    targets: [
-      {
-        id: 'land-t1',
-        code: 'TGT-ALPHA // 01',
-        name: 'Concealed Mobile SAM Launcher',
-        classification: 'THERMAL + SAR SIGNATURE CONFIRMED',
-        telemetryRecon: 'PASSIVE IR LOCK // EMISSION: 84°C // COORDS ENCRYPTED',
-        telemetryAttack: 'TERMINAL SEEKER LOCK // IMPACT T-1.8s // CEP < 0.15m',
-        capabilityLayer: 'LAYER 01 — REAL-TIME MULTI-SPECTRAL SENSOR FUSION (120 FPS)',
-        howItWorksRecon:
-          'Fuses 4K optical video, thermal infrared (LWIR), and synthetic aperture radar (SAR) feeds simultaneously at 120 FPS to expose camouflaged thermal signatures through urban smoke and fog.',
-        howItWorksAttack:
-          'Correlates thermal exhaust plumes with 3D LiDAR surface geometry at 120 FPS to pinpoint the vulnerable missile canister warhead section for surgical micro-munition strike.',
-        componentName: 'Forward 4K Sapphire Gimbal + 3× Quartz LiDAR Array',
-        componentSpec: '24.0 mm 2-Axis Spherical Gimbal // -36° / 0° / +36° Solid-State LiDAR',
-        worldPos: [-36, -24, -270],
-      },
-      {
-        id: 'land-t2',
-        code: 'TGT-BRAVO // 02',
-        name: 'Armored Command Convoy (Moving)',
-        classification: 'MULTI-TARGET NEURAL LOCK [12/64 TRACKS]',
-        telemetryRecon: 'VIO TRACKING // VEL: 48 KM/H // AES-256 FHSS UPLINK',
-        telemetryAttack: 'LEAD-ANGLE BALLISTIC SOLUTION // LASER DESIGNATOR ACTIVE',
-        capabilityLayer: 'LAYER 02 & 03 — AUTONOMOUS TARGET TRACKING & HARDENED UPLINK',
-        howItWorksRecon:
-          'Deep neural networks lock onto moving ground vehicles in GPS-denied urban canyons using Visual Inertial Odometry (VIO), transmitting coordinates over quantum-safe AES-256 frequency-hopping links.',
-        howItWorksAttack:
-          'Computes predictive lead-pursuit vectors on moving armor while resisting MIL-STD-461G electronic warfare jamming via autonomous onboard visual-inertial lock.',
-        componentName: 'Dual 3.0 mm Stereo VIO Cameras + Conformal FHSS Patch',
-        componentSpec: 'GPS-Denied Visual Odometry // MIL-STD-461G Jamming-Proof Telemetry',
-        worldPos: [42, -26, -540],
-      },
-      {
-        id: 'land-t3',
-        code: 'TGT-CHARLIE // 03',
-        name: 'Fortified C4ISR Radar Node',
-        classification: 'HIGH-PRIORITY STRATEGIC EMITTER',
-        telemetryRecon: 'RF SPECTRUM MAPPED // 0% CLOUD DEPENDENCY // < 5ms TPU',
-        telemetryAttack: 'VENTRAL BAY OPEN // KINETIC INTERDICTION AUTHORIZED',
-        capabilityLayer: 'LAYER 04 — SUB-5MS NEUROMORPHIC EDGE AI & DUAL-MODE EXECUTION',
-        howItWorksRecon:
-          'Executes complete classification and RF emitter triangulation 100% onboard the neuromorphic TPU in under 5 milliseconds with zero cloud latency or external kill-switch vulnerability.',
-        howItWorksAttack:
-          'Onboard Edge TPU computes terminal ballistic trajectory and releases the precision-guided micro-munition from the internal flush bay with automated civilian fail-safe abort protocols.',
-        componentName: 'A.V.I.A.R.S. Neuromorphic TPU + Modular Ventral Hardpoint',
-        componentSpec: '< 5 ms Decision Loop (18W Peak) // Zero-Drag Internal Munition Bay',
-        worldPos: [-18, -16, -810],
-      },
-    ],
-    secondaryLabels: ['INFANTRY SQUAD [0.98]', 'UGV PATROL [0.96]', 'RF JAMMER [0.99]', 'RELAY TOWER [0.95]'],
+    id: 'land-sam',
+    code: 'LAND-01 // TELAR SAM',
+    sector: 'land',
+    sectorLabel: 'SECTOR 01 // LAND — CONTESTED URBAN CORRIDOR',
+    name: '8×8 Mobile SAM Launcher & Radar',
+    classification: 'THERMAL + SAR SIGNATURE CONFIRMED',
+    telemetryRecon: 'PASSIVE LWIR LOCK // CANISTER TEMP: 84°C // COORDS ENCRYPTED',
+    telemetryAttack: 'TERMINAL SEEKER LOCK // WARHEAD BAY TARGETED // CEP < 0.15m',
+    capabilityLayer: 'LAYER 01 — 120 FPS MULTI-SPECTRAL SENSOR FUSION',
+    howItWorksRecon:
+      'Simultaneously fuses 4K optical video, thermal infrared (LWIR), and synthetic aperture radar (SAR) feeds at 120 FPS to expose the camouflaged 8×8 launcher through urban smoke.',
+    howItWorksAttack:
+      'Co-aligns 3D LiDAR surface geometry with thermal exhaust hotspots at 120 FPS to lock onto the elevated 4-tube missile canister assembly for surgical kinetic interdiction.',
+    componentName: 'Forward 4K Sapphire Gimbal + 3× Quartz LiDAR Array',
+    componentSpec: '24.0 mm 2-Axis Spherical Gimbal // -36° / 0° / +36° Solid-State LiDAR',
+    worldPos: [-32, -28, -260],
+    scrollRange: [0.16, 0.30],
   },
-  air: {
-    label: 'Air // Counter-UAS Intercept',
-    shortLabel: 'Air',
-    sectorName: 'SECTOR 02 // LOW-ALTITUDE CONTESTED AIRSPACE',
-    altitudeLabel: 'ALT: 310.0 M ASL // INTERCEPT VECTOR',
-    environmentDesc: 'High-speed aerial swarm interception & micro-Doppler tracking',
-    targets: [
-      {
-        id: 'air-t1',
-        code: 'AIR-ALPHA // 01',
-        name: 'Hostile Reconnaissance Micro-UAV',
-        classification: 'LOW-RCS AERIAL INTRUDER DETECTED',
-        telemetryRecon: 'MICRO-DOPPLER LOCK // RCS: 0.002 m² // RANGE: 185m',
-        telemetryAttack: 'INTERCEPT VECTOR LOCKED // CLOSING VEL: 64 M/S',
-        capabilityLayer: 'LAYER 01 — REAL-TIME MULTI-SPECTRAL SENSOR FUSION (120 FPS)',
-        howItWorksRecon:
-          'Combines high-frequency micro-Doppler rotor blade signatures with 120 FPS thermal and 4K optical feeds to spot miniature carbon drones against cluttered cloud and skyline backgrounds.',
-        howItWorksAttack:
-          'Locks onto fast-moving aerial intruders at 120 FPS, fusing solid-state LiDAR rangefinding with optical contrast tracking for high-velocity air-to-air interdiction.',
-        componentName: 'Forward 4K Sapphire Gimbal + 3× Quartz LiDAR Array',
-        componentSpec: '120 FPS Multi-Spectral Fusion // 0.8 mm Dynamic Gimbal Clearance',
-        worldPos: [-34, 14, -270],
-      },
-      {
-        id: 'air-t2',
-        code: 'AIR-BRAVO // 02',
-        name: 'Autonomous Loitering Swarm (6× Units)',
-        classification: 'SWARM CLUSTER TRACKING [38/64 TRACKS]',
-        telemetryRecon: '64-TARGET SIMULTANEOUS TRACK // FHSS ENCRYPTED MESH',
-        telemetryAttack: 'MULTI-VECTOR PRIORITY QUEUE // PRIMARY LEAD LOCKED',
-        capabilityLayer: 'LAYER 02 & 03 — AUTONOMOUS TARGET TRACKING & HARDENED UPLINK',
-        howItWorksRecon:
-          'Tracks up to 64 independent airborne targets simultaneously using deep neural networks while sharing encrypted swarm telemetry across frequency-hopping spread spectrum (FHSS) links.',
-        howItWorksAttack:
-          'Autonomously ranks hostile swarm threats by kinematic time-to-impact and maintains terminal lock even under aggressive electronic warfare (EW) spoofing.',
-        componentName: 'Dual 3.0 mm Stereo VIO + AES-256 Quantum-Safe Transceiver',
-        componentSpec: 'Up to 64 Simultaneous Target Locks // Adaptive FHSS Anti-Jamming',
-        worldPos: [38, -8, -540],
-      },
-      {
-        id: 'air-t3',
-        code: 'AIR-CHARLIE // 03',
-        name: 'Airborne EW Jamming Relay Platform',
-        classification: 'ACTIVE ELECTRONIC WARFARE SOURCE',
-        telemetryRecon: 'PASSIVE RF HOMING // ONBOARD TPU INFERENCE: 4.1 ms',
-        telemetryAttack: 'KINETIC INTERCEPT SOLUTION // FAIL-SAFE ABORT READY',
-        capabilityLayer: 'LAYER 04 — SUB-5MS NEUROMORPHIC EDGE AI & DUAL-MODE EXECUTION',
-        howItWorksRecon:
-          'Processes raw RF signal anomalies and visual kinematics directly at the edge in under 5 ms, operating completely air-gapped from ground cloud networks.',
-        howItWorksAttack:
-          'Guides precision kinetic interception onto the hostile airborne relay using onboard neuromorphic TPU ballistic solvers and 4× serrated acoustic ducted thrust vectoring.',
-        componentName: 'A.V.I.A.R.S. Neuromorphic TPU + 4× Serrated Ducted Rotors',
-        componentSpec: '< 5 ms Edge AI Latency // 45.0 mm Enclosed Toroidal Carbon Ducts',
-        worldPos: [-14, 10, -810],
-      },
-    ],
-    secondaryLabels: ['SWARM NODE #02 [0.99]', 'SWARM NODE #03 [0.97]', 'LOITER MUNITION [0.98]', 'DECOY DRONE [0.94]'],
+  {
+    id: 'land-tank',
+    code: 'LAND-02 // MBT CONVOY',
+    sector: 'land',
+    sectorLabel: 'SECTOR 01 // LAND — CONTESTED URBAN CORRIDOR',
+    name: 'Armored Main Battle Tank (Moving)',
+    classification: 'GPS-DENIED VISUAL ODOMETRY LOCK [14/64 TRACKS]',
+    telemetryRecon: 'VIO TRACKING // VEL: 48 KM/H // AES-256 FHSS UPLINK',
+    telemetryAttack: 'TOP-ATTACK BALLISTIC SOLUTION // LASER DESIGNATOR ACTIVE',
+    capabilityLayer: 'LAYER 02 — AUTONOMOUS MULTI-TARGET NEURAL TRACKING',
+    howItWorksRecon:
+      'Deep neural networks lock onto moving armored vehicles in GPS-denied urban canyons using Visual Inertial Odometry (VIO), streaming encrypted coordinates to command.',
+    howItWorksAttack:
+      'Computes a predictive lead-pursuit top-attack trajectory onto the thinner turret roof armor while defeating local GPS spoofing via onboard stereo visual-inertial lock.',
+    componentName: 'Dual 3.0 mm Stereo VIO Cameras + 4× ToF Sensors',
+    componentSpec: 'GPS-Denied Visual Inertial Odometry // Up to 64 Simultaneous Tracks',
+    worldPos: [34, -28, -500],
+    scrollRange: [0.30, 0.44],
   },
-  naval: {
-    label: 'Naval // Singapore Strait Overwatch',
-    shortLabel: 'Naval',
-    sectorName: 'SECTOR 03 // SINGAPORE STRAIT & LITTORAL SEA LANES',
-    altitudeLabel: 'ALT: 65.0 M MSL // MARITIME OVERWATCH',
-    environmentDesc: 'Tropical monsoon haze penetration, dark-ship AIS audit & littoral defense',
-    targets: [
-      {
-        id: 'naval-t1',
-        code: 'NAV-ALPHA // 01',
-        name: 'Unregistered "Dark Ship" Tanker',
-        classification: 'AIS TRANSPONDER SPOOFING DETECTED',
-        telemetryRecon: 'SAR + THERMAL HULL MATCH // AIS DISCREPANCY: 1.4 NM',
-        telemetryAttack: 'RUDDER / PROPULSION SUBSYSTEM TARGETED // LOCK CONFIRMED',
-        capabilityLayer: 'LAYER 01 — REAL-TIME MULTI-SPECTRAL SENSOR FUSION (120 FPS)',
-        howItWorksRecon:
-          'Penetrates heavy tropical rain, sea spray, and monsoon haze by fusing synthetic aperture radar (SAR) wake profiling with thermal infrared hull signatures at 120 FPS.',
-        howItWorksAttack:
-          'Isolates critical vessel propulsion and bridge radar arrays through zero-visibility maritime weather using co-aligned 4K optical, thermal IR, and LiDAR point clouds.',
-        componentName: 'Forward 4K Sapphire Gimbal + Multi-Spectral Sensor Ring',
-        componentSpec: 'All-Weather 24/7 Maritime Clarity // 120 FPS SAR + IR + Optical Fusion',
-        worldPos: [-40, -24, -270],
-      },
-      {
-        id: 'naval-t2',
-        code: 'NAV-BRAVO // 02',
-        name: 'High-Speed Littoral Fast Attack Craft',
-        classification: 'UNAUTHORIZED SPEED ANOMALY [46 KNOTS]',
-        telemetryRecon: 'WAKE VECTOR LOCK // 46 KTS // ENCRYPTED COASTAL ALERT',
-        telemetryAttack: 'MOVING MARITIME LEAD SOLUTION // LASER DESIGNATOR LOCKED',
-        capabilityLayer: 'LAYER 02 & 03 — AUTONOMOUS TARGET TRACKING & HARDENED UPLINK',
-        howItWorksRecon:
-          'Locks onto high-speed surface craft across featureless open water without GPS using visual wave-surface odometry, streaming AES-256 encrypted alerts to coastal command.',
-        howItWorksAttack:
-          'Maintains sub-pixel laser designation on pitching, high-speed naval targets at 46 knots while defeating littoral radar multipath and RF jamming.',
-        componentName: '2-Axis Stabilized Gimbal + Stereo VIO + AES-256 Uplink',
-        componentSpec: '130,000+ Annual Vessel Overwatch // Quantum-Resistant Telemetry',
-        worldPos: [44, -25, -540],
-      },
-      {
-        id: 'naval-t3',
-        code: 'NAV-CHARLIE // 03',
-        name: 'Autonomous Semi-Submersible USV',
-        classification: 'LOW-PROFILE MARITIME THREAT',
-        telemetryRecon: 'SUB-SURFACE THERMAL WAKE // < 5 ms ONBOARD TPU AUDIT',
-        telemetryAttack: 'TERMINAL KINETIC DIVE PROFILE // VENTRAL PAYLOAD ARMED',
-        capabilityLayer: 'LAYER 04 — SUB-5MS NEUROMORPHIC EDGE AI & DUAL-MODE EXECUTION',
-        howItWorksRecon:
-          'Detects near-submerged unmanned surface vessels in under 5 milliseconds via onboard neuromorphic TPU anomaly detection, keeping all sovereign maritime data 100% air-gapped.',
-        howItWorksAttack:
-          'Executes an autonomous terminal dive guidance solution from the flush ventral hardpoint with real-time wave-crest compensation and instant fail-safe abort control.',
-        componentName: 'A.V.I.A.R.S. Edge TPU + Modular Ventral Kinetic Hardpoint',
-        componentSpec: '0% Cloud Leak Risk (Air-Gapped) //Zero-Drag Internal Munition Bay',
-        worldPos: [-16, -25, -810],
-      },
-    ],
-    secondaryLabels: ['CARGO VESSEL [AIS OK]', 'FAST INTERCEPTOR [0.99]', 'PATROL CRAFT [AIS OK]', 'BUOY RELAY [0.96]'],
+
+  // =========================================================================
+  // SECTOR 02: AIR // CONTESTED AIRSPACE INTERCEPT (Scroll 44% -> 72%)
+  // =========================================================================
+  {
+    id: 'air-ucav',
+    code: 'AIR-01 // STEALTH UCAV',
+    sector: 'air',
+    sectorLabel: 'SECTOR 02 // AIR — LOW-ALTITUDE CONTESTED AIRSPACE',
+    name: 'Hostile Swept-Wing UCAV & Swarm',
+    classification: 'LOW-RCS AERIAL INTRUDER [38/64 TRACKS]',
+    telemetryRecon: 'MICRO-DOPPLER LOCK // RCS: 0.002 m² // CLOSING: 72 M/S',
+    telemetryAttack: 'AIR-TO-AIR INTERCEPT VECTOR // LEAD RETICLE LOCKED',
+    capabilityLayer: 'LAYER 02 & 03 — HIGH-VELOCITY AERIAL SWARM TRACKING',
+    howItWorksRecon:
+      'Combines high-frequency micro-Doppler wake signatures with 120 FPS thermal plume detection to lock onto low-observable flying-wing drones against cloud clutter.',
+    howItWorksAttack:
+      'Autonomously ranks hostile swarm threats by kinematic time-to-intercept and maintains sub-milliradian optical lock during high-G evasive maneuvers.',
+    componentName: '4K Sapphire Aspheric Optics + Solid-State LiDAR Ring',
+    componentSpec: '120 FPS High-Speed Optical Lock // 3× Gold-Dichroic Quartz Windows',
+    worldPos: [-30, 42, -780],
+    scrollRange: [0.44, 0.58],
   },
-};
+  {
+    id: 'air-ew',
+    code: 'AIR-02 // EW RELAY',
+    sector: 'air',
+    sectorLabel: 'SECTOR 02 // AIR — LOW-ALTITUDE CONTESTED AIRSPACE',
+    name: 'Twin-Boom Airborne EW Jamming Platform',
+    classification: 'ACTIVE ELECTRONIC WARFARE EMITTER',
+    telemetryRecon: 'MIL-STD-461G JAMMING DEFEATED // FHSS LINK HARDENED',
+    telemetryAttack: 'HOME-ON-JAM TERMINAL GUIDANCE // VENTRAL BAY ARMED',
+    capabilityLayer: 'LAYER 03 — QUANTUM-SAFE ENCRYPTION & ANTI-JAMMING UPLINK',
+    howItWorksRecon:
+      'Maintains full telemetry under aggressive electronic warfare jamming using adaptive frequency-hopping spread spectrum (FHSS) and quantum-resistant AES-256 encryption.',
+    howItWorksAttack:
+      'Switches seamlessly to passive Home-On-Jam (HOJ) optical + RF triangulation, turning the hostile aircraft’s own jamming emissions into a precision terminal guidance beacon.',
+    componentName: 'Conformal GNSS/FHSS Patch + AES-256 Crypto Enclave',
+    componentSpec: 'MIL-STD-461G EW Resistance // Quantum-Resistant Encrypted Telemetry',
+    worldPos: [32, 46, -1040],
+    scrollRange: [0.58, 0.72],
+  },
+
+  // =========================================================================
+  // SECTOR 03: NAVAL // SINGAPORE STRAIT MARITIME OVERWATCH (Scroll 72% -> 100%)
+  // =========================================================================
+  {
+    id: 'naval-corvette',
+    code: 'NAVAL-01 // DARK SHIP',
+    sector: 'naval',
+    sectorLabel: 'SECTOR 03 // NAVAL — SINGAPORE STRAIT MARITIME OVERWATCH',
+    name: 'Unregistered Stealth Corvette (AIS Spoofed)',
+    classification: 'DARK-SHIP AIS ANOMALY DETECTED',
+    telemetryRecon: 'SAR WAKE + THERMAL HULL MATCH // AIS OFFSET: 1.8 NM',
+    telemetryAttack: 'RADAR MAST & VLS DECK TARGETED // LOCK CONFIRMED',
+    capabilityLayer: 'LAYER 01 & 04 — ALL-WEATHER MARITIME SENSOR FUSION',
+    howItWorksRecon:
+      'Penetrates tropical monsoon downpours and sea haze by fusing synthetic aperture radar (SAR) kelvin-wake profiling with thermal IR hull signatures at 120 FPS.',
+    howItWorksAttack:
+      'Isolates the warship’s primary phased-array radar mast and vertical launch system (VLS) deck hatches using co-aligned 4K optical and LiDAR point-cloud segmentation.',
+    componentName: 'Multi-Spectral SAR/IR Fusion + Neuromorphic Edge TPU',
+    componentSpec: 'All-Weather 24/7 Maritime Clarity // 130,000+ Annual Vessel Overwatch',
+    worldPos: [-34, -27, -1340],
+    scrollRange: [0.72, 0.86],
+  },
+  {
+    id: 'naval-fac',
+    code: 'NAVAL-02 // FAST ATTACK',
+    sector: 'naval',
+    sectorLabel: 'SECTOR 03 // NAVAL — SINGAPORE STRAIT MARITIME OVERWATCH',
+    name: 'High-Speed Littoral Fast Attack Craft (46 Kts)',
+    classification: 'TERMINAL EDGE TPU LOCK [< 4.2 MS LATENCY]',
+    telemetryRecon: 'AIR-GAPPED ONBOARD TPU // < 5 MS DECISION LOOP // 18W PEAK',
+    telemetryAttack: 'VENTRAL MICRO-MUNITION DEPLOYED // FAIL-SAFE ABORT READY',
+    capabilityLayer: 'LAYER 04 — SUB-5MS NEUROMORPHIC EDGE AI & KINETIC STRIKE',
+    howItWorksRecon:
+      'Executes complete vessel classification and kinematic wake tracking 100% onboard the neuromorphic TPU in under 5 milliseconds with 0% cloud leak risk.',
+    howItWorksAttack:
+      'Releases the precision-guided micro-munition from the zero-drag internal ventral bay, computing real-time wave-crest compensation and automated fail-safe abort control.',
+    componentName: 'A.V.I.A.R.S. Neuromorphic TPU + Modular Ventral Hardpoint',
+    componentSpec: '< 5 ms Onboard Inference (18W) // Zero-Drag Internal Flush Weapon Bay',
+    worldPos: [28, -28, -1600],
+    scrollRange: [0.86, 1.01],
+  },
+];
 
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
@@ -227,12 +170,374 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
+// Helper to add a mesh together with crisp technical wireframe edges
+function addMeshWithEdges(
+  parent: THREE.Object3D,
+  geom: THREE.BufferGeometry,
+  mat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial,
+  pos: [number, number, number] = [0, 0, 0],
+  rot: [number, number, number] = [0, 0, 0]
+): THREE.Mesh {
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(pos[0], pos[1], pos[2]);
+  mesh.rotation.set(rot[0], rot[1], rot[2]);
+  parent.add(mesh);
+
+  const edges = new THREE.EdgesGeometry(geom, 24);
+  const line = new THREE.LineSegments(edges, edgeMat);
+  mesh.add(line);
+  return mesh;
+}
+
+// ============================================================================
+// DETAILED 3D MILITARY & MARITIME TARGET BUILDERS
+// ============================================================================
+
+function buildSamLauncherModel(
+  armorMat: THREE.Material,
+  darkMat: THREE.Material,
+  thermalMat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial
+): { group: THREE.Group; radarDish: THREE.Object3D } {
+  const g = new THREE.Group();
+
+  // 8x8 Heavy TELAR Truck Chassis Frame
+  addMeshWithEdges(g, new THREE.BoxGeometry(16, 4.5, 44), darkMat, edgeMat, [0, 3.5, 0]);
+  // Forward Armored Twin-Window Cab
+  addMeshWithEdges(g, new THREE.BoxGeometry(15.5, 8.5, 11), armorMat, edgeMat, [0, 8.5, 15.5]);
+  // Sloped Windshield Visor
+  addMeshWithEdges(
+    g,
+    new THREE.BoxGeometry(14.8, 3.2, 1.5),
+    thermalMat,
+    edgeMat,
+    [0, 9.8, 21.1],
+    [-0.25, 0, 0]
+  );
+  // Central Engine & Generator Housing
+  addMeshWithEdges(g, new THREE.BoxGeometry(14, 6.5, 10), armorMat, edgeMat, [0, 8.0, 3.5]);
+
+  // 8 Heavy Tactical Wheels (4 Axles)
+  const wheelGeom = new THREE.CylinderGeometry(3.4, 3.4, 2.6, 16);
+  wheelGeom.rotateZ(Math.PI / 2);
+  const axleZ = [-16, -7, 6, 15];
+  axleZ.forEach((z) => {
+    addMeshWithEdges(g, wheelGeom, darkMat, edgeMat, [-8.5, 3.4, z]);
+    addMeshWithEdges(g, wheelGeom, darkMat, edgeMat, [8.5, 3.4, z]);
+  });
+
+  // Hydraulic Stabilizer Outriggers
+  addMeshWithEdges(g, new THREE.BoxGeometry(22, 1.2, 2.2), darkMat, edgeMat, [0, 1.2, -19]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(22, 1.2, 2.2), darkMat, edgeMat, [0, 1.2, 0]);
+
+  // Turntable & Elevated 4x Cylindrical SAM Missile Canister Tubes (Angled at 38 deg)
+  addMeshWithEdges(g, new THREE.CylinderGeometry(6.5, 7.2, 3.0, 12), armorMat, edgeMat, [0, 7.2, -11]);
+
+  const canisterGroup = new THREE.Group();
+  canisterGroup.position.set(0, 11.5, -12);
+  canisterGroup.rotation.x = 0.62; // Angled upward toward sky
+  g.add(canisterGroup);
+
+  // Support Cradle
+  addMeshWithEdges(canisterGroup, new THREE.BoxGeometry(13.5, 2.2, 22), darkMat, edgeMat, [0, -2.2, 2]);
+
+  // 4x Missile Launch Tubes + Thermal Seeker/Exhaust Caps
+  const tubeGeom = new THREE.CylinderGeometry(2.3, 2.3, 26, 12);
+  tubeGeom.rotateX(Math.PI / 2);
+  const tubeOffsets: [number, number][] = [
+    [-4.2, 0],
+    [0, 0],
+    [4.2, 0],
+    [-2.1, 3.8],
+    [2.1, 3.8],
+  ];
+  tubeOffsets.slice(0, 4).forEach(([ox, oy], idx) => {
+    const px = -4.5 + idx * 3.0;
+    addMeshWithEdges(canisterGroup, tubeGeom, armorMat, edgeMat, [px, oy, 2]);
+    // Glowing thermal nose cap
+    const capGeom = new THREE.CylinderGeometry(2.0, 2.0, 1.2, 12);
+    capGeom.rotateX(Math.PI / 2);
+    addMeshWithEdges(canisterGroup, capGeom, thermalMat, edgeMat, [px, oy, 15.2]);
+  });
+
+  // Rotating Phased-Array Acquisition Radar Mast
+  const radarGroup = new THREE.Group();
+  radarGroup.position.set(0, 13.5, 3.5);
+  g.add(radarGroup);
+  addMeshWithEdges(radarGroup, new THREE.CylinderGeometry(1.2, 1.5, 5.5, 8), darkMat, edgeMat, [0, 2.2, 0]);
+  addMeshWithEdges(
+    radarGroup,
+    new THREE.BoxGeometry(11.5, 5.2, 1.6),
+    thermalMat,
+    edgeMat,
+    [0, 6.0, 0],
+    [-0.18, 0, 0]
+  );
+
+  return { group: g, radarDish: radarGroup };
+}
+
+function buildArmoredTankModel(
+  armorMat: THREE.Material,
+  darkMat: THREE.Material,
+  thermalMat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial
+): THREE.Group {
+  const g = new THREE.Group();
+
+  // Main Sloped Armored Hull
+  addMeshWithEdges(g, new THREE.BoxGeometry(18, 5.5, 34), armorMat, edgeMat, [0, 5.2, 0]);
+  // Glacis Front Sloped Armor Plate
+  addMeshWithEdges(
+    g,
+    new THREE.BoxGeometry(17.5, 4.2, 9.5),
+    armorMat,
+    edgeMat,
+    [0, 6.2, 14.5],
+    [0.35, 0, 0]
+  );
+
+  // Left & Right Armored Track Assemblies + Roadwheels
+  addMeshWithEdges(g, new THREE.BoxGeometry(4.2, 5.2, 36), darkMat, edgeMat, [-10.2, 3.4, 0]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(4.2, 5.2, 36), darkMat, edgeMat, [10.2, 3.4, 0]);
+
+  const roadWheelG = new THREE.CylinderGeometry(2.4, 2.4, 4.6, 12);
+  roadWheelG.rotateZ(Math.PI / 2);
+  for (let w = -13; w <= 13; w += 5.2) {
+    addMeshWithEdges(g, roadWheelG, darkMat, edgeMat, [-10.2, 2.6, w]);
+    addMeshWithEdges(g, roadWheelG, darkMat, edgeMat, [10.2, 2.6, w]);
+  }
+
+  // Rear Thermal Engine Deck Plume
+  addMeshWithEdges(g, new THREE.BoxGeometry(12, 1.2, 7.5), thermalMat, edgeMat, [0, 8.1, -11.5]);
+
+  // Angular Composite Main Turret
+  const turretGroup = new THREE.Group();
+  turretGroup.position.set(0, 8.2, 1.0);
+  turretGroup.rotation.y = -0.18;
+  g.add(turretGroup);
+
+  const turretG = new THREE.CylinderGeometry(8.5, 10.5, 5.2, 6);
+  addMeshWithEdges(turretGroup, turretG, armorMat, edgeMat, [0, 2.6, 0]);
+  // Turret Rear Bustle Rack
+  addMeshWithEdges(turretGroup, new THREE.BoxGeometry(12, 4.4, 8.5), armorMat, edgeMat, [0, 2.8, -8.5]);
+
+  // 120mm Smoothbore Main Gun Barrel + Thermal Sleeve + Muzzle Brake
+  const barrelG = new THREE.CylinderGeometry(0.95, 1.15, 26, 12);
+  barrelG.rotateX(Math.PI / 2);
+  addMeshWithEdges(turretGroup, barrelG, darkMat, edgeMat, [0, 3.0, 18.5]);
+  // Bore Evacuator / Thermal Sleeve
+  const sleeveG = new THREE.CylinderGeometry(1.45, 1.45, 5.5, 12);
+  sleeveG.rotateX(Math.PI / 2);
+  addMeshWithEdges(turretGroup, sleeveG, thermalMat, edgeMat, [0, 3.0, 15.0]);
+
+  // Commander Panoramic CITV Sight & Remote Weapon Station
+  addMeshWithEdges(turretGroup, new THREE.CylinderGeometry(2.0, 2.2, 2.8, 10), thermalMat, edgeMat, [3.5, 6.4, -1.5]);
+
+  return g;
+}
+
+function buildHostileUcavModel(
+  armorMat: THREE.Material,
+  darkMat: THREE.Material,
+  thermalMat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial
+): THREE.Group {
+  const g = new THREE.Group();
+
+  // Blended Stealth Flying-Wing Center Fuselage
+  const bodyG = new THREE.ConeGeometry(10, 28, 4);
+  bodyG.rotateX(-Math.PI / 2);
+  bodyG.scale(1.4, 0.38, 1.0);
+  addMeshWithEdges(g, bodyG, armorMat, edgeMat, [0, 0, 2]);
+
+  // Swept Lambda / Delta Stealth Wings (Left & Right)
+  const wingG = new THREE.BoxGeometry(46, 1.4, 14);
+  addMeshWithEdges(g, wingG, armorMat, edgeMat, [0, 0, -2]);
+
+  // Forward Swept Leading-Edge Chines
+  addMeshWithEdges(
+    g,
+    new THREE.BoxGeometry(24, 1.2, 8),
+    darkMat,
+    edgeMat,
+    [-12, 0, 3],
+    [0, 0.48, 0]
+  );
+  addMeshWithEdges(
+    g,
+    new THREE.BoxGeometry(24, 1.2, 8),
+    darkMat,
+    edgeMat,
+    [12, 0, 3],
+    [0, -0.48, 0]
+  );
+
+  // Canted Twin Stealth V-Tails
+  addMeshWithEdges(
+    g,
+    new THREE.BoxGeometry(1.0, 7.5, 8.5),
+    darkMat,
+    edgeMat,
+    [-5.5, 3.2, -9],
+    [0, 0, 0.45]
+  );
+  addMeshWithEdges(
+    g,
+    new THREE.BoxGeometry(1.0, 7.5, 8.5),
+    darkMat,
+    edgeMat,
+    [5.5, 3.2, -9],
+    [0, 0, -0.45]
+  );
+
+  // Dorsal Submerged S-Duct Intake & Glowing Aft Thermal Jet Exhaust Nozzle
+  addMeshWithEdges(g, new THREE.BoxGeometry(6.5, 2.4, 9.0), darkMat, edgeMat, [0, 2.2, 3]);
+  const nozzleG = new THREE.CylinderGeometry(2.6, 3.2, 4.5, 12);
+  nozzleG.rotateX(Math.PI / 2);
+  addMeshWithEdges(g, nozzleG, thermalMat, edgeMat, [0, 0.2, -12.5]);
+
+  // 2 Escorting Hostile Swarm Wingman Micro-Drones
+  [-28, 28].forEach((offsetX) => {
+    const mini = new THREE.Group();
+    mini.position.set(offsetX, 4, -12);
+    addMeshWithEdges(mini, new THREE.BoxGeometry(7, 2.2, 9), darkMat, edgeMat);
+    addMeshWithEdges(mini, new THREE.SphereGeometry(1.8, 10, 10), thermalMat, edgeMat, [0, 0, 4.8]);
+    g.add(mini);
+  });
+
+  return g;
+}
+
+function buildEwAircraftModel(
+  armorMat: THREE.Material,
+  darkMat: THREE.Material,
+  thermalMat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial
+): { group: THREE.Group; rotodome: THREE.Object3D } {
+  const g = new THREE.Group();
+
+  // Central Surveillance Fuselage Pod
+  const fuseG = new THREE.CylinderGeometry(4.2, 4.2, 32, 12);
+  fuseG.rotateX(Math.PI / 2);
+  addMeshWithEdges(g, fuseG, armorMat, edgeMat, [0, 0, 0]);
+
+  // Bulbous Radome Nose
+  addMeshWithEdges(g, new THREE.SphereGeometry(4.2, 16, 16), thermalMat, edgeMat, [0, 0, 16]);
+
+  // High-Aspect-Ratio Straight Wings (52m scaled span)
+  addMeshWithEdges(g, new THREE.BoxGeometry(54, 1.4, 7.5), armorMat, edgeMat, [0, 1.2, 1]);
+
+  // Under-Wing Electronic Warfare Jamming Pods (Left & Right)
+  const podG = new THREE.CylinderGeometry(1.4, 1.4, 11, 10);
+  podG.rotateX(Math.PI / 2);
+  addMeshWithEdges(g, podG, thermalMat, edgeMat, [-16, -2.0, 2]);
+  addMeshWithEdges(g, podG, thermalMat, edgeMat, [16, -2.0, 2]);
+
+  // Twin Tail Booms + Horizontal Tailplane
+  const boomG = new THREE.CylinderGeometry(1.1, 1.1, 26, 8);
+  boomG.rotateX(Math.PI / 2);
+  addMeshWithEdges(g, boomG, darkMat, edgeMat, [-10, 0.8, -11]);
+  addMeshWithEdges(g, boomG, darkMat, edgeMat, [10, 0.8, -11]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(1.0, 7.5, 5.5), armorMat, edgeMat, [-10, 4.2, -22]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(1.0, 7.5, 5.5), armorMat, edgeMat, [10, 4.2, -22]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(22, 1.0, 4.5), armorMat, edgeMat, [0, 7.5, -22]);
+
+  // Dorsal Rotating AWACS / EW Saucer Rotodome Dish
+  const domeGroup = new THREE.Group();
+  domeGroup.position.set(0, 6.8, -1);
+  g.add(domeGroup);
+  addMeshWithEdges(domeGroup, new THREE.CylinderGeometry(1.0, 1.4, 4.2, 8), darkMat, edgeMat, [0, -2.0, 0]);
+  const saucerG = new THREE.CylinderGeometry(11.5, 11.5, 2.2, 24);
+  addMeshWithEdges(domeGroup, saucerG, armorMat, edgeMat, [0, 0, 0]);
+  addMeshWithEdges(domeGroup, new THREE.BoxGeometry(22.5, 2.4, 2.0), thermalMat, edgeMat, [0, 0, 0]);
+
+  return { group: g, rotodome: domeGroup };
+}
+
+function buildNavalWarshipModel(
+  armorMat: THREE.Material,
+  darkMat: THREE.Material,
+  thermalMat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial
+): { group: THREE.Group; navalRadar: THREE.Object3D } {
+  const g = new THREE.Group();
+
+  // Stealth Warship Lower Hull & Flared Bow
+  addMeshWithEdges(g, new THREE.BoxGeometry(18, 7.5, 62), darkMat, edgeMat, [0, 3.5, 0]);
+  // Raked Clipper Bow Wedge
+  const bowG = new THREE.ConeGeometry(12.8, 22, 4);
+  bowG.rotateX(Math.PI / 2);
+  bowG.rotateZ(Math.PI / 4);
+  bowG.scale(1.0, 1.0, 0.35);
+  addMeshWithEdges(g, bowG, darkMat, edgeMat, [0, 3.8, 36]);
+
+  // Stealth Tumblehome Superstructure Deckhouse
+  addMeshWithEdges(g, new THREE.BoxGeometry(15.5, 7.0, 32), armorMat, edgeMat, [0, 10.5, 1]);
+  // Forward Bridge & Illuminated Bridge Windows
+  addMeshWithEdges(g, new THREE.BoxGeometry(13.5, 4.8, 12), armorMat, edgeMat, [0, 15.8, 7]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(12.2, 1.4, 1.2), thermalMat, edgeMat, [0, 16.5, 13.1]);
+
+  // Forward 76mm Stealth Naval Gun Turret + Barrel
+  addMeshWithEdges(g, new THREE.CylinderGeometry(3.2, 4.2, 3.2, 6), armorMat, edgeMat, [0, 8.8, 25]);
+  const gunBarrel = new THREE.CylinderGeometry(0.45, 0.55, 10, 8);
+  gunBarrel.rotateX(Math.PI / 2);
+  addMeshWithEdges(g, gunBarrel, thermalMat, edgeMat, [0, 9.4, 30.5]);
+
+  // 8-Cell VLS (Vertical Launch System) Missile Hatch Deck
+  addMeshWithEdges(g, new THREE.BoxGeometry(9.5, 1.2, 8.5), thermalMat, edgeMat, [0, 7.6, 16.5]);
+
+  // Integrated Stealth Mainmast + Spinning Phased-Array Radar
+  addMeshWithEdges(g, new THREE.ConeGeometry(4.8, 14, 4), armorMat, edgeMat, [0, 24.5, 5]);
+  const radarGroup = new THREE.Group();
+  radarGroup.position.set(0, 32.0, 5);
+  g.add(radarGroup);
+  addMeshWithEdges(radarGroup, new THREE.BoxGeometry(8.5, 2.2, 1.4), thermalMat, edgeMat, [0, 0, 0]);
+
+  // Aft Exhaust Stack (Thermal Hotspot) & Helicopter Flight Deck
+  addMeshWithEdges(g, new THREE.BoxGeometry(9.5, 5.5, 8.0), thermalMat, edgeMat, [0, 15.5, -7]);
+
+  return { group: g, navalRadar: radarGroup };
+}
+
+function buildFastAttackCraftModel(
+  armorMat: THREE.Material,
+  darkMat: THREE.Material,
+  thermalMat: THREE.Material,
+  edgeMat: THREE.LineBasicMaterial
+): THREE.Group {
+  const g = new THREE.Group();
+
+  // Sleek Wave-Piercing Planing Hull
+  addMeshWithEdges(g, new THREE.BoxGeometry(13, 4.8, 38), darkMat, edgeMat, [0, 2.4, 0]);
+  const bowG = new THREE.ConeGeometry(9.2, 16, 4);
+  bowG.rotateX(Math.PI / 2);
+  bowG.rotateZ(Math.PI / 4);
+  bowG.scale(1.0, 1.0, 0.28);
+  addMeshWithEdges(g, bowG, darkMat, edgeMat, [0, 2.5, 23]);
+
+  // Low-Observable Raked Pilothouse Cabin
+  addMeshWithEdges(g, new THREE.BoxGeometry(10.5, 4.8, 14), armorMat, edgeMat, [0, 7.0, 4]);
+  addMeshWithEdges(g, new THREE.BoxGeometry(9.2, 1.3, 1.0), thermalMat, edgeMat, [0, 7.8, 11.1]);
+
+  // Electro-Optical Sensor Mast
+  addMeshWithEdges(g, new THREE.CylinderGeometry(0.9, 1.2, 7.5, 8), armorMat, edgeMat, [0, 12.8, 3]);
+  addMeshWithEdges(g, new THREE.SphereGeometry(1.6, 12, 12), thermalMat, edgeMat, [0, 16.8, 3]);
+
+  // Twin Aft Inclined Anti-Ship Missile Quad-Pack Canisters
+  const launcherG = new THREE.BoxGeometry(3.8, 3.8, 13);
+  addMeshWithEdges(g, launcherG, thermalMat, edgeMat, [-3.4, 7.5, -9], [0.42, 0, 0]);
+  addMeshWithEdges(g, launcherG, thermalMat, edgeMat, [3.4, 7.5, -9], [0.42, 0, 0]);
+
+  return g;
+}
+
 export default function AviarsBattlefieldViewer() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [scenario, setScenario] = useState<ScenarioType>('land');
   const [missionMode, setMissionMode] = useState<MissionMode>('recon');
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 });
   const [projectedTargets, setProjectedTargets] = useState<ProjectedTarget[]>([]);
@@ -242,16 +547,11 @@ export default function AviarsBattlefieldViewer() {
 
   const progressRef = useRef(0);
   const smoothedProgressRef = useRef(0);
-  const scenarioRef = useRef<ScenarioType>('land');
   const missionModeRef = useRef<MissionMode>('recon');
 
   useEffect(() => {
     progressRef.current = scrollProgress;
   }, [scrollProgress]);
-
-  useEffect(() => {
-    scenarioRef.current = scenario;
-  }, [scenario]);
 
   useEffect(() => {
     missionModeRef.current = missionMode;
@@ -288,7 +588,7 @@ export default function AviarsBattlefieldViewer() {
     });
   }, []);
 
-  // Initialize Three.js WebGL Stage (0ms instant load + background GLB upgrade)
+  // Initialize Three.js WebGL Stage
   useEffect(() => {
     const wrapper = canvasWrapperRef.current;
     if (!wrapper) return;
@@ -298,11 +598,12 @@ export default function AviarsBattlefieldViewer() {
     setViewportSize({ width, height });
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#07090D');
-    scene.fog = new THREE.FogExp2('#07090D', 0.0014);
+    scene.background = new THREE.Color('#090B10');
+    scene.fog = new THREE.FogExp2('#090B10', 0.0012);
 
-    const camera = new THREE.PerspectiveCamera(42, width / height, 1, 2400);
-    camera.position.set(0, 38, 250);
+    const camera = new THREE.PerspectiveCamera(36, width / height, 1, 2600);
+    // Start zoomed out at an elevated 3/4 studio angle so the full SA-1 Vanguard looks hyper-realistic
+    camera.position.set(240, 155, 340);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -310,305 +611,457 @@ export default function AviarsBattlefieldViewer() {
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.35;
     renderer.domElement.style.touchAction = 'pan-y';
 
     wrapper.innerHTML = '';
     wrapper.appendChild(renderer.domElement);
 
-    // Studio & Tactical Lighting
-    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x07090d, 1.0);
+    // =========================================================================
+    // STUDIO KEY / RIM / FILL LIGHTING (For Hyper-Realistic Carbon & Titanium PBR)
+    // =========================================================================
+    const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x0b0f19, 1.25);
     scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    keyLight.position.set(180, 320, 260);
+    const keyLight = new THREE.DirectionalLight(0xfffdf8, 3.1);
+    keyLight.position.set(280, 420, 350);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.8);
-    rimLight.position.set(-220, 140, -180);
+    const rimLight = new THREE.DirectionalLight(0x60a5fa, 2.4);
+    rimLight.position.set(-320, 200, -280);
     scene.add(rimLight);
 
-    const noseGlowLight = new THREE.PointLight(0x38bdf8, 2.2, 160);
-    scene.add(noseGlowLight);
+    const underFillLight = new THREE.DirectionalLight(0x38bdf8, 0.95);
+    underFillLight.position.set(0, -240, 180);
+    scene.add(underFillLight);
+
+    const noseSpot = new THREE.PointLight(0x38bdf8, 2.2, 320);
+    noseSpot.position.set(0, 24, 180);
+    scene.add(noseSpot);
 
     // =========================================================================
-    // 1. SA-1 "VANGUARD" DRONE GROUP (Visible in Phase 1 before POV Entry)
+    // 1. HYPER-REALISTIC SA-1 "VANGUARD" DRONE ASSEMBLY (Phase 1 External View)
     // =========================================================================
     const droneRoot = new THREE.Group();
     scene.add(droneRoot);
 
-    const hullMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#222730'),
-      metalness: 0.45,
-      roughness: 0.42,
-      clearcoat: 0.25,
-    });
-    const darkCarbonMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#15181f'),
-      metalness: 0.55,
-      roughness: 0.35,
-    });
-    const blueSphereMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#0284c7'),
-      emissive: new THREE.Color('#38bdf8'),
-      emissiveIntensity: 0.65,
-      metalness: 0.2,
-      roughness: 0.08,
-      clearcoat: 1.0,
-    });
+    const buildMaterialForDroneNode = (name: string): THREE.MeshPhysicalMaterial => {
+      if (name === 'Main_Hull_Top') {
+        return new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color('#2d3442'),
+          metalness: 0.38,
+          roughness: 0.36,
+          clearcoat: 0.35,
+          clearcoatRoughness: 0.32,
+        });
+      }
+      if (name === 'Main_Hull_Ventral') {
+        return new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color('#202631'),
+          metalness: 0.42,
+          roughness: 0.42,
+          clearcoat: 0.25,
+        });
+      }
+      if (name.startsWith('Ducted_Propeller')) {
+        return new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color('#3b4456'),
+          metalness: 0.55,
+          roughness: 0.28,
+        });
+      }
+      if (name === 'Gimbal_Sphere_Assembly') {
+        return new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color('#0284c7'),
+          emissive: new THREE.Color('#0369a1'),
+          emissiveIntensity: 0.38,
+          metalness: 0.55,
+          roughness: 0.16,
+          clearcoat: 0.9,
+        });
+      }
+      if (name === 'Primary_4K_Lens') {
+        return new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color('#38bdf8'),
+          emissive: new THREE.Color('#0ea5e9'),
+          emissiveIntensity: 0.75,
+          metalness: 0.15,
+          roughness: 0.05,
+          clearcoat: 1.0,
+        });
+      }
+      if (name.startsWith('Sensor_Array')) {
+        return new THREE.MeshPhysicalMaterial({
+          color: new THREE.Color('#f59e0b'),
+          emissive: new THREE.Color('#d97706'),
+          emissiveIntensity: 0.4,
+          metalness: 0.85,
+          roughness: 0.12,
+          clearcoat: 1.0,
+        });
+      }
+      return new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#cbd5e1'),
+        metalness: 0.92,
+        roughness: 0.16,
+      });
+    };
 
-    const fallbackGroup = new THREE.Group();
-    droneRoot.add(fallbackGroup);
-
-    // Procedural SA-1 Vanguard (0ms instant render matching the quad-ducted CAD silhouette)
-    const bodyGeom = new THREE.CylinderGeometry(58, 76, 18, 8);
-    bodyGeom.scale(1.0, 1.0, 1.05);
-    const bodyMesh = new THREE.Mesh(bodyGeom, hullMat);
-    fallbackGroup.add(bodyMesh);
-
-    const spineGeom = new THREE.BoxGeometry(44, 20, 136);
-    const spineMesh = new THREE.Mesh(spineGeom, darkCarbonMat);
-    spineMesh.position.set(0, 2, 0);
-    fallbackGroup.add(spineMesh);
-
-    // Blue Optical Camera & Sensor Sphere at the Nose (+Z in local drone space)
-    const noseSphereGeom = new THREE.SphereGeometry(13.5, 32, 32);
-    const noseSphereMesh = new THREE.Mesh(noseSphereGeom, blueSphereMat);
-    noseSphereMesh.position.set(0, -1, 68);
-    droneRoot.add(noseSphereMesh);
-
-    const lensRingGeom = new THREE.TorusGeometry(14.5, 1.2, 16, 48);
-    const lensRingMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-    const lensRingMesh = new THREE.Mesh(lensRingGeom, lensRingMat);
-    lensRingMesh.position.set(0, -1, 70);
-    droneRoot.add(lensRingMesh);
-
-    // 4 Flush Ducted Rotors
-    const rotorPositions: [number, number, number, number][] = [
-      [-52, 0, 34, 1],
-      [52, 0, 34, -1],
-      [-52, 0, -34, -1],
-      [52, 0, -34, 1],
-    ];
+    const fallbackDroneGroup = new THREE.Group();
+    droneRoot.add(fallbackDroneGroup);
     const spinningRotors: { mesh: THREE.Object3D; dir: number }[] = [];
 
-    rotorPositions.forEach(([rx, ry, rz, dir]) => {
-      const ductGeom = new THREE.CylinderGeometry(28, 28, 16, 28, 1, true);
-      const ductMesh = new THREE.Mesh(ductGeom, hullMat);
-      ductMesh.position.set(rx, ry, rz);
-      fallbackGroup.add(ductMesh);
+    // Instant 0ms multi-part fallback until /models/sa1_vanguard.glb finishes streaming
+    const dorsalGeom = new THREE.CylinderGeometry(64, 86, 19, 8);
+    dorsalGeom.scale(1.0, 1.0, 0.92);
+    const dorsalMesh = new THREE.Mesh(dorsalGeom, buildMaterialForDroneNode('Main_Hull_Top'));
+    dorsalMesh.position.set(0, 8, 0);
+    fallbackDroneGroup.add(dorsalMesh);
 
-      const propGroup = new THREE.Group();
-      propGroup.position.set(rx, ry, rz);
-      const hubMesh = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 7, 16), darkCarbonMat);
-      propGroup.add(hubMesh);
+    const ventralGeom = new THREE.CylinderGeometry(86, 68, 16, 8);
+    ventralGeom.scale(1.0, 1.0, 0.92);
+    const ventralMesh = new THREE.Mesh(ventralGeom, buildMaterialForDroneNode('Main_Hull_Ventral'));
+    ventralMesh.position.set(0, -8, 0);
+    fallbackDroneGroup.add(ventralMesh);
+
+    const gimMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(12, 32, 32),
+      buildMaterialForDroneNode('Gimbal_Sphere_Assembly')
+    );
+    gimMesh.position.set(0, 0, 62);
+    fallbackDroneGroup.add(gimMesh);
+
+    const lensG = new THREE.CylinderGeometry(8.5, 8.5, 5, 32);
+    lensG.rotateX(Math.PI / 2);
+    const lensM = new THREE.Mesh(lensG, buildMaterialForDroneNode('Primary_4K_Lens'));
+    lensM.position.set(0, 0, 70);
+    fallbackDroneGroup.add(lensM);
+
+    const rotorCoords: [number, number, number, number][] = [
+      [-52, -2.5, 33, 1],
+      [52, -2.5, 33, -1],
+      [-52, -2.5, -35, -1],
+      [52, -2.5, -35, 1],
+    ];
+    rotorCoords.forEach(([rx, ry, rz, dir]) => {
+      const rGroup = new THREE.Group();
+      rGroup.position.set(rx, ry, rz);
+      const hub = new THREE.Mesh(
+        new THREE.CylinderGeometry(6.5, 6.5, 7, 20),
+        buildMaterialForDroneNode('Ducted_Propeller_L1')
+      );
+      rGroup.add(hub);
       for (let b = 0; b < 5; b++) {
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(18, 1.0, 4.5), darkCarbonMat);
+        const blade = new THREE.Mesh(
+          new THREE.BoxGeometry(16, 1.2, 5.2),
+          buildMaterialForDroneNode('Ducted_Propeller_L1')
+        );
         const ang = (b * Math.PI * 2) / 5;
-        blade.position.set(Math.cos(ang) * 12, 0, Math.sin(ang) * 12);
+        blade.position.set(Math.cos(ang) * 13, 0, Math.sin(ang) * 13);
         blade.rotation.y = -ang;
-        propGroup.add(blade);
+        rGroup.add(blade);
       }
-      fallbackGroup.add(propGroup);
-      spinningRotors.push({ mesh: propGroup, dir });
+      fallbackDroneGroup.add(rGroup);
+      spinningRotors.push({ mesh: rGroup, dir });
     });
 
-    // Background stream of authentic /models/sa1_vanguard.glb
+    // Load authentic /models/sa1_vanguard.glb + /models/sa1_vanguard_step_edges.json
     let isDisposed = false;
-    const loader = new GLTFLoader();
-    loader.load(
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.load(
       '/models/sa1_vanguard.glb',
       (gltf) => {
         if (isDisposed) return;
-        const model = gltf.scene;
-        model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const m = child as THREE.Mesh;
-            if (m.name.includes('Lens') || m.name.includes('Gimbal') || m.name.includes('Sensor')) {
-              m.material = blueSphereMat;
-            } else {
-              m.material = hullMat;
+        const root = gltf.scene;
+        const glbChildren: THREE.Object3D[] = [];
+        root.children.forEach((c) => glbChildren.push(c));
+
+        droneRoot.remove(fallbackDroneGroup);
+        spinningRotors.length = 0;
+
+        glbChildren.forEach((node) => {
+          const name = node.name;
+          node.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              mesh.material = buildMaterialForDroneNode(name);
             }
+          });
+
+          if (name.startsWith('Ducted_Propeller_')) {
+            const dir = name.endsWith('L1') || name.endsWith('R2') ? 1 : -1;
+            const box = new THREE.Box3().setFromObject(node);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+
+            const spinWrapper = new THREE.Group();
+            spinWrapper.position.copy(center);
+            node.position.sub(center);
+            spinWrapper.add(node);
+            droneRoot.add(spinWrapper);
+            spinningRotors.push({ mesh: spinWrapper, dir });
+          } else {
+            droneRoot.add(node);
           }
         });
-        droneRoot.remove(fallbackGroup);
-        droneRoot.add(model);
       },
       undefined,
-      () => {
-        // Keep procedural fallback if offline
-      }
+      () => {}
     );
 
-    // =========================================================================
-    // 2. MULTI-SCENARIO 3D BATTLEFIELD ENVIRONMENT (LAND / AIR / NAVAL)
-    // =========================================================================
-    const battlefieldRoot = new THREE.Group();
-    scene.add(battlefieldRoot);
-
-    // Base Tactical Coordinate Grid extending downrange (-Z from 100 to -1250)
-    const floorGrid = new THREE.GridHelper(1600, 64, 0x00ff41, 0x13202c);
-    floorGrid.position.set(0, -32, -520);
-    (floorGrid.material as THREE.Material).transparent = true;
-    (floorGrid.material as THREE.Material).opacity = 0.32;
-    battlefieldRoot.add(floorGrid);
-
-    // Scenario-Specific Environment Groups
-    const landEnvGroup = new THREE.Group();
-    const airEnvGroup = new THREE.Group();
-    const navalEnvGroup = new THREE.Group();
-    battlefieldRoot.add(landEnvGroup, airEnvGroup, navalEnvGroup);
-
-    const wireBuildingMat = new THREE.MeshBasicMaterial({
-      color: 0x1e293b,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.45,
-    });
-    const solidBuildingMat = new THREE.MeshPhysicalMaterial({
-      color: 0x0d131c,
-      roughness: 0.8,
-      metalness: 0.2,
-      transparent: true,
-      opacity: 0.88,
-    });
-
-    // Populate Land / Urban Canyon Buildings along left & right corridors
-    for (let i = 0; i < 28; i++) {
-      const side = i % 2 === 0 ? -1 : 1;
-      const zPos = -80 - i * 40;
-      const xPos = side * (85 + (i % 3) * 28);
-      const bw = 34 + (i % 4) * 10;
-      const bh = 45 + ((i * 17) % 85);
-      const bd = 34 + (i % 3) * 12;
-
-      const bGeom = new THREE.BoxGeometry(bw, bh, bd);
-      const bMesh = new THREE.Mesh(bGeom, solidBuildingMat);
-      bMesh.position.set(xPos, -32 + bh / 2, zPos);
-      landEnvGroup.add(bMesh);
-
-      const bWire = new THREE.Mesh(bGeom, wireBuildingMat);
-      bWire.position.copy(bMesh.position);
-      landEnvGroup.add(bWire);
-    }
-
-    // Populate Air / Contested Airspace Volumetric Flight Corridors & Cloud Grid
-    const upperAirGrid = new THREE.GridHelper(1600, 40, 0x38bdf8, 0x0f172a);
-    upperAirGrid.position.set(0, 75, -520);
-    (upperAirGrid.material as THREE.Material).transparent = true;
-    (upperAirGrid.material as THREE.Material).opacity = 0.22;
-    airEnvGroup.add(upperAirGrid);
-
-    const airRingMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.22,
-    });
-    for (let i = 0; i < 10; i++) {
-      const gateGeom = new THREE.RingGeometry(68, 70, 6);
-      const gateMesh = new THREE.Mesh(gateGeom, airRingMat);
-      gateMesh.position.set(0, 0, -120 - i * 100);
-      airEnvGroup.add(gateMesh);
-    }
-
-    // Populate Naval / Maritime Sea Wave Mesh & Shipping Lane Buoys
-    const seaGeom = new THREE.PlaneGeometry(1400, 1600, 48, 64);
-    seaGeom.rotateX(-Math.PI / 2);
-    const seaMat = new THREE.MeshBasicMaterial({
-      color: 0x0284c7,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.28,
-    });
-    const seaMesh = new THREE.Mesh(seaGeom, seaMat);
-    seaMesh.position.set(0, -31, -520);
-    navalEnvGroup.add(seaMesh);
+    // Subtle CAD B-Rep precision edge highlight on the SA-1 Vanguard
+    fetch('/models/sa1_vanguard_step_edges.json')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((edgeGroups: Record<string, number[]> | null) => {
+        if (!edgeGroups || isDisposed) return;
+        const cadLineMat = new THREE.LineBasicMaterial({
+          color: new THREE.Color('#38bdf8'),
+          transparent: true,
+          opacity: 0.16,
+        });
+        Object.values(edgeGroups).forEach((flatPositions) => {
+          if (!flatPositions || flatPositions.length === 0) return;
+          const bGeom = new THREE.BufferGeometry();
+          bGeom.setAttribute('position', new THREE.Float32BufferAttribute(flatPositions, 3));
+          const seg = new THREE.LineSegments(bGeom, cadLineMat);
+          droneRoot.add(seg);
+        });
+      })
+      .catch(() => {});
 
     // =========================================================================
-    // 3. 3D TARGET MESHES + SCAN CONES + BALLISTIC TRAJECTORY + LASER BEAM
+    // 2. CONTINUOUS MULTI-DOMAIN 3D WORLD (LAND -> AIR -> NAVAL ALONG -Z)
     // =========================================================================
-    const targetMeshes: THREE.Group[] = [];
-    const targetBoxMats: THREE.MeshBasicMaterial[] = [];
-    const targetCoreMats: THREE.MeshPhysicalMaterial[] = [];
+    const worldRoot = new THREE.Group();
+    scene.add(worldRoot);
 
-    for (let tIdx = 0; tIdx < 3; tIdx++) {
-      const tGroup = new THREE.Group();
-
-      // Target Core Mesh (Vehicle / Vessel / Aircraft silhouette)
-      const coreMat = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color('#1e293b'),
-        emissive: new THREE.Color('#00ff41'),
-        emissiveIntensity: 0.35,
-        metalness: 0.6,
-        roughness: 0.3,
-      });
-      targetCoreMats.push(coreMat);
-
-      const hullG = new THREE.BoxGeometry(22, 10, 34);
-      const hullM = new THREE.Mesh(hullG, coreMat);
-      tGroup.add(hullM);
-
-      const turretG = new THREE.ConeGeometry(8, 12, 6);
-      turretG.rotateX(Math.PI / 2);
-      const turretM = new THREE.Mesh(turretG, coreMat);
-      turretM.position.set(0, 6, 4);
-      tGroup.add(turretM);
-
-      // 3D Tactical Bounding Cage around target
-      const cageMat = new THREE.MeshBasicMaterial({
-        color: 0x00ff41,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.75,
-      });
-      targetBoxMats.push(cageMat);
-      const cageG = new THREE.BoxGeometry(30, 18, 42);
-      const cageM = new THREE.Mesh(cageG, cageMat);
-      tGroup.add(cageM);
-
-      // Ground/Target Radar Pulse Ring
-      const pulseRingG = new THREE.RingGeometry(22, 24, 32);
-      pulseRingG.rotateX(-Math.PI / 2);
-      const pulseRingM = new THREE.Mesh(pulseRingG, cageMat);
-      pulseRingM.position.set(0, -8, 0);
-      tGroup.add(pulseRingM);
-
-      battlefieldRoot.add(tGroup);
-      targetMeshes.push(tGroup);
-    }
-
-    // Secondary Peripheral Swarm / Convoy Nodes (to demonstrate 64-target tracking)
-    const secondaryNodes: { mesh: THREE.Mesh; basePos: THREE.Vector3 }[] = [];
-    const secMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      wireframe: true,
+    const armorMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#273244'),
+      metalness: 0.55,
+      roughness: 0.38,
+      clearcoat: 0.2,
+    });
+    const darkMetalMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#151c28'),
+      metalness: 0.65,
+      roughness: 0.45,
+    });
+    const thermalHotspotMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#10b981'),
+      emissive: new THREE.Color('#00ff41'),
+      emissiveIntensity: 0.75,
+      metalness: 0.3,
+      roughness: 0.2,
+    });
+    const targetEdgeMat = new THREE.LineBasicMaterial({
+      color: new THREE.Color('#00ff41'),
       transparent: true,
-      opacity: 0.55,
-    });
-    const secCoords: [number, number, number][] = [
-      [-70, -18, -360],
-      [68, -12, -410],
-      [-62, -20, -640],
-      [58, -14, -720],
-    ];
-    secCoords.forEach(([sx, sy, sz]) => {
-      const m = new THREE.Mesh(new THREE.OctahedronGeometry(7, 0), secMat);
-      m.position.set(sx, sy, sz);
-      battlefieldRoot.add(m);
-      secondaryNodes.push({ mesh: m, basePos: new THREE.Vector3(sx, sy, sz) });
+      opacity: 0.65,
     });
 
-    // Tactical Laser Designator Beam & Ballistic Curve (For Attack vs Recon Mode)
-    const laserMat = new THREE.LineBasicMaterial({
-      color: 0xef4444,
+    // -------------------------------------------------------------------------
+    // SECTOR 01 ENVIRONMENT: LAND // URBAN CANYON (Z: -80 to -620, Y: -28)
+    // -------------------------------------------------------------------------
+    const landSectorGroup = new THREE.Group();
+    worldRoot.add(landSectorGroup);
+
+    const landGrid = new THREE.GridHelper(640, 32, 0x00ff41, 0x162436);
+    landGrid.position.set(0, -28, -350);
+    (landGrid.material as THREE.Material).transparent = true;
+    (landGrid.material as THREE.Material).opacity = 0.38;
+    landSectorGroup.add(landGrid);
+
+    // Central Highway Roadway & Lane Dividers
+    const roadGeom = new THREE.PlaneGeometry(54, 620);
+    roadGeom.rotateX(-Math.PI / 2);
+    const roadMat = new THREE.MeshBasicMaterial({
+      color: 0x0d1520,
       transparent: true,
       opacity: 0.85,
     });
+    const roadMesh = new THREE.Mesh(roadGeom, roadMat);
+    roadMesh.position.set(0, -27.9, -350);
+    landSectorGroup.add(roadMesh);
+
+    const bldgMat = new THREE.MeshPhysicalMaterial({
+      color: 0x111927,
+      roughness: 0.7,
+      metalness: 0.3,
+      transparent: true,
+      opacity: 0.92,
+    });
+    const bldgEdgeMat = new THREE.LineBasicMaterial({
+      color: 0x334155,
+      transparent: true,
+      opacity: 0.55,
+    });
+
+    for (let i = 0; i < 18; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const zPos = -130 - i * 28;
+      const xPos = side * (78 + (i % 3) * 24);
+      const bw = 32 + (i % 3) * 10;
+      const bh = 42 + ((i * 19) % 72);
+      const bd = 30 + (i % 2) * 12;
+
+      addMeshWithEdges(
+        landSectorGroup,
+        new THREE.BoxGeometry(bw, bh, bd),
+        bldgMat,
+        bldgEdgeMat,
+        [xPos, -28 + bh / 2, zPos]
+      );
+
+      // Rooftop comms tower on every 3rd building
+      if (i % 3 === 0) {
+        addMeshWithEdges(
+          landSectorGroup,
+          new THREE.CylinderGeometry(0.6, 1.2, 16, 6),
+          darkMetalMat,
+          bldgEdgeMat,
+          [xPos, -28 + bh + 8, zPos]
+        );
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // SECTOR 02 ENVIRONMENT: AIR // CONTESTED AIRSPACE (Z: -620 to -1180, Y: +42)
+    // -------------------------------------------------------------------------
+    const airSectorGroup = new THREE.Group();
+    worldRoot.add(airSectorGroup);
+
+    const airFloorGrid = new THREE.GridHelper(640, 24, 0x38bdf8, 0x111e30);
+    airFloorGrid.position.set(0, 8, -900);
+    (airFloorGrid.material as THREE.Material).transparent = true;
+    (airFloorGrid.material as THREE.Material).opacity = 0.25;
+    airSectorGroup.add(airFloorGrid);
+
+    const airCeilingGrid = new THREE.GridHelper(640, 24, 0x38bdf8, 0x111e30);
+    airCeilingGrid.position.set(0, 88, -900);
+    (airCeilingGrid.material as THREE.Material).transparent = true;
+    (airCeilingGrid.material as THREE.Material).opacity = 0.2;
+    airSectorGroup.add(airCeilingGrid);
+
+    const airCorridorMat = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.24,
+    });
+    for (let i = 0; i < 6; i++) {
+      const hexRingG = new THREE.RingGeometry(64, 65.5, 6);
+      const hexEdges = new THREE.EdgesGeometry(hexRingG);
+      const hexLine = new THREE.LineSegments(hexEdges, airCorridorMat);
+      hexLine.position.set(0, 44, -680 - i * 85);
+      airSectorGroup.add(hexLine);
+    }
+
+    // -------------------------------------------------------------------------
+    // SECTOR 03 ENVIRONMENT: NAVAL // SINGAPORE STRAIT (Z: -1180 to -1850, Y: -28)
+    // -------------------------------------------------------------------------
+    const navalSectorGroup = new THREE.Group();
+    worldRoot.add(navalSectorGroup);
+
+    const seaGeom = new THREE.PlaneGeometry(900, 780, 44, 48);
+    seaGeom.rotateX(-Math.PI / 2);
+    const seaMat = new THREE.MeshBasicMaterial({
+      color: 0x0ea5e9,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.3,
+    });
+    const seaMesh = new THREE.Mesh(seaGeom, seaMat);
+    seaMesh.position.set(0, -28, -1500);
+    navalSectorGroup.add(seaMesh);
+
+    // Channel Navigation Buoys along the Singapore Strait shipping lane
+    for (let b = 0; b < 6; b++) {
+      const bz = -1240 - b * 95;
+      [-95, 95].forEach((bx) => {
+        addMeshWithEdges(
+          navalSectorGroup,
+          new THREE.ConeGeometry(3.2, 8, 8),
+          armorMat,
+          bldgEdgeMat,
+          [bx, -24, bz]
+        );
+      });
+    }
+
+    // =========================================================================
+    // 3. INSTANTIATE THE 6 DETAILED 3D TARGETS ACROSS LAND -> AIR -> NAVAL
+    // =========================================================================
+    const samBuilt = buildSamLauncherModel(armorMat, darkMetalMat, thermalHotspotMat, targetEdgeMat);
+    const tankGroup = buildArmoredTankModel(armorMat, darkMetalMat, thermalHotspotMat, targetEdgeMat);
+    const ucavGroup = buildHostileUcavModel(armorMat, darkMetalMat, thermalHotspotMat, targetEdgeMat);
+    const ewBuilt = buildEwAircraftModel(armorMat, darkMetalMat, thermalHotspotMat, targetEdgeMat);
+    const warshipBuilt = buildNavalWarshipModel(armorMat, darkMetalMat, thermalHotspotMat, targetEdgeMat);
+    const facGroup = buildFastAttackCraftModel(armorMat, darkMetalMat, thermalHotspotMat, targetEdgeMat);
+
+    const target3DObjects: THREE.Group[] = [
+      samBuilt.group,
+      tankGroup,
+      ucavGroup,
+      ewBuilt.group,
+      warshipBuilt.group,
+      facGroup,
+    ];
+
+    // Add a sleek 3D ground/air target lock ring around each of the 6 targets
+    const targetRingMats: THREE.MeshBasicMaterial[] = [];
+    target3DObjects.forEach((tObj, idx) => {
+      const [wx, wy, wz] = MISSION_TARGETS[idx].worldPos;
+      tObj.position.set(wx, wy, wz);
+      // Angle vehicles naturally toward the corridor
+      tObj.rotation.y = idx % 2 === 0 ? 0.32 : -0.28;
+
+      const rMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff41,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.65,
+      });
+      targetRingMats.push(rMat);
+
+      const ringRadius = idx === 4 ? 34 : 24;
+      const ringG = new THREE.RingGeometry(ringRadius, ringRadius + 1.8, 36);
+      ringG.rotateX(-Math.PI / 2);
+      const ringM = new THREE.Mesh(ringG, rMat);
+      ringM.position.set(0, 0.8, 0);
+      tObj.add(ringM);
+
+      worldRoot.add(tObj);
+    });
+
+    // Secondary Peripheral Nodes (To demonstrate 64-Target Multi-Tracking)
+    const secondaryNodes: { mesh: THREE.Group; label: string }[] = [];
+    const secSpecs: { pos: [number, number, number]; label: string }[] = [
+      { pos: [62, -26, -320], label: 'APC ESCORT [0.98]' },
+      { pos: [-58, -26, -440], label: 'MOBILE RADAR [0.97]' },
+      { pos: [58, 52, -840], label: 'SWARM DRONE #04 [0.99]' },
+      { pos: [-56, 36, -980], label: 'DECOY UAV [0.95]' },
+      { pos: [66, -27, -1420], label: 'CARGO VESSEL [AIS OK]' },
+      { pos: [-62, -27, -1540], label: 'PATROL BOAT [0.98]' },
+    ];
+    secSpecs.forEach((sp) => {
+      const sg = new THREE.Group();
+      sg.position.set(sp.pos[0], sp.pos[1], sp.pos[2]);
+      addMeshWithEdges(sg, new THREE.BoxGeometry(10, 5, 16), darkMetalMat, bldgEdgeMat, [0, 2.5, 0]);
+      worldRoot.add(sg);
+      secondaryNodes.push({ mesh: sg, label: sp.label });
+    });
+
+    // Laser Designator Beam & Ballistic Trajectory Arc
+    const laserMat = new THREE.LineBasicMaterial({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.9,
+    });
     const laserGeom = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, -10, 0),
-      new THREE.Vector3(0, -20, -200),
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, -100),
     ]);
     const laserLine = new THREE.Line(laserGeom, laserMat);
     scene.add(laserLine);
@@ -616,18 +1069,14 @@ export default function AviarsBattlefieldViewer() {
     const ballisticMat = new THREE.LineBasicMaterial({
       color: 0x00ff41,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.7,
     });
-    const ballisticPoints: THREE.Vector3[] = [];
-    for (let i = 0; i <= 24; i++) {
-      ballisticPoints.push(new THREE.Vector3(0, 0, 0));
-    }
-    const ballisticGeom = new THREE.BufferGeometry().setFromPoints(ballisticPoints);
+    const ballisticGeom = new THREE.BufferGeometry();
     const ballisticArc = new THREE.Line(ballisticGeom, ballisticMat);
     scene.add(ballisticArc);
 
     // =========================================================================
-    // 4. ANIMATION & CAMERA POV FLIGHT LOOP
+    // 4. ANIMATION & CONTINUOUS SCROLL FLIGHT LOOP (LAND -> AIR -> NAVAL)
     // =========================================================================
     const clock = new THREE.Clock();
     let animId = 0;
@@ -648,135 +1097,154 @@ export default function AviarsBattlefieldViewer() {
 
       const elapsed = clock.getElapsedTime();
       const targetP = progressRef.current;
-      smoothedProgressRef.current += (targetP - smoothedProgressRef.current) * 0.09;
+      smoothedProgressRef.current += (targetP - smoothedProgressRef.current) * 0.085;
       const p = smoothedProgressRef.current;
 
-      const curScenario = scenarioRef.current;
       const curMode = missionModeRef.current;
       const isAttack = curMode === 'attack';
       const accentHex = isAttack ? 0xef4444 : 0x00ff41;
 
-      // Toggle Scenario 3D groups
-      landEnvGroup.visible = curScenario === 'land';
-      airEnvGroup.visible = curScenario === 'air';
-      navalEnvGroup.visible = curScenario === 'naval';
-
-      // Animate Sea Waves in Naval scenario
-      if (curScenario === 'naval') {
-        const posAttr = seaGeom.attributes.position as THREE.BufferAttribute;
-        for (let i = 0; i < posAttr.count; i++) {
-          const vx = posAttr.getX(i);
-          const vz = posAttr.getZ(i);
-          posAttr.setY(i, Math.sin(vx * 0.04 + elapsed * 1.8) * 1.8 + Math.cos(vz * 0.03 + elapsed * 1.4) * 1.8);
-        }
-        posAttr.needsUpdate = true;
-      }
+      // Update Target Highlight Colors (Emerald in Recon, Crimson in Attack)
+      thermalHotspotMat.color.setHex(isAttack ? 0xf87171 : 0x10b981);
+      thermalHotspotMat.emissive.setHex(accentHex);
+      targetEdgeMat.color.setHex(accentHex);
+      targetRingMats.forEach((rm) => rm.color.setHex(accentHex));
 
       // Spin SA-1 Vanguard rotors
       spinningRotors.forEach((r) => {
-        r.mesh.rotation.y += 0.22 * r.dir;
+        r.mesh.rotation.y += 0.24 * r.dir;
       });
 
-      // Update Target 3D positions & colors for active scenario
-      const activeTargets = SCENARIO_CONFIGS[curScenario].targets;
-      activeTargets.forEach((tSpec, idx) => {
-        const tMesh = targetMeshes[idx];
-        const [tx, ty, tz] = tSpec.worldPos;
-        // Subtle motion on targets to feel alive
-        const driftX = Math.sin(elapsed * 0.9 + idx * 2.1) * 3.5;
-        const driftY = curScenario === 'air' ? Math.cos(elapsed * 1.3 + idx) * 3.0 : 0;
-        tMesh.position.set(tx + driftX, ty + driftY, tz);
-        tMesh.rotation.y = Math.sin(elapsed * 0.4 + idx) * 0.15;
+      // Spin Rotating Radar Dishes on SAM Launcher, EW Aircraft & Naval Warship
+      samBuilt.radarDish.rotation.y = elapsed * 1.8;
+      ewBuilt.rotodome.rotation.y = elapsed * 1.4;
+      warshipBuilt.navalRadar.rotation.y = elapsed * 1.6;
 
-        targetBoxMats[idx].color.setHex(accentHex);
-        targetCoreMats[idx].emissive.setHex(accentHex);
-      });
+      // Subtle kinematic motion on moving targets (Tank, UCAV, EW Plane, Fast Attack Craft)
+      tankGroup.position.x = MISSION_TARGETS[1].worldPos[0] + Math.sin(elapsed * 0.7) * 4;
+      ucavGroup.position.x = MISSION_TARGETS[2].worldPos[0] + Math.sin(elapsed * 1.2) * 8;
+      ucavGroup.position.y = MISSION_TARGETS[2].worldPos[1] + Math.cos(elapsed * 1.5) * 3;
+      ucavGroup.rotation.z = Math.cos(elapsed * 1.2) * -0.18;
 
-      secondaryNodes.forEach((sn, idx) => {
-        sn.mesh.position.x = sn.basePos.x + Math.cos(elapsed * 0.8 + idx) * 6;
-        sn.mesh.position.y =
-          (curScenario === 'air' ? 12 : -18) + Math.sin(elapsed * 1.1 + idx) * 3;
-        sn.mesh.rotation.y += 0.02;
-        sn.mesh.rotation.x += 0.01;
-      });
+      ewBuilt.group.position.x = MISSION_TARGETS[3].worldPos[0] + Math.cos(elapsed * 0.9) * 7;
+      ewBuilt.group.position.y = MISSION_TARGETS[3].worldPos[1] + Math.sin(elapsed * 1.1) * 2.5;
 
-      // =======================================================================
-      // PHASE 1 (p: 0.0 -> 0.18): THIRD-PERSON DRONE TURN & ZOOM INTO CAMERA POV
-      // PHASE 2..4 (p: 0.18 -> 1.0): FIRST-PERSON POV FLIGHT THROUGH BATTLEFIELD
-      // =======================================================================
+      facGroup.position.x = MISSION_TARGETS[5].worldPos[0] + Math.sin(elapsed * 1.1) * 5;
+
+      // Animate Sea Waves in Naval Sector
+      const posAttr = seaGeom.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < posAttr.count; i++) {
+        const vx = posAttr.getX(i);
+        const vz = posAttr.getZ(i);
+        posAttr.setY(
+          i,
+          Math.sin(vx * 0.04 + elapsed * 1.8) * 1.6 + Math.cos(vz * 0.03 + elapsed * 1.4) * 1.6
+        );
+      }
+      posAttr.needsUpdate = true;
+
+      // Determine active target index (0..5) from continuous scroll progress
+      const activeTargetIdx =
+        p < 0.30
+          ? 0
+          : p < 0.44
+          ? 1
+          : p < 0.58
+          ? 2
+          : p < 0.72
+          ? 3
+          : p < 0.86
+          ? 4
+          : 5;
+
       const w = wrapper.clientWidth || 1280;
       const h = Math.max(1, wrapper.clientHeight || 800);
       const aspect = w / h;
-      const portraitPullback = aspect < 0.95 ? Math.min(1.55, 0.95 / Math.max(aspect, 0.45)) : 1.0;
+      const portraitZoomMultiplier =
+        aspect < 1.0 ? Math.min(1.65, Math.max(1.0, 0.95 / Math.max(aspect, 0.45))) : 1.0;
 
-      if (p < 0.18) {
-        const tIntro = smoothstep(0.0, 0.14, p);
-        const tZoom = smoothstep(0.10, 0.18, p);
+      // =======================================================================
+      // PHASE 1 (p: 0.00 -> 0.16): ZOOMED-OUT HYPER-REALISTIC SA-1 DRONE
+      //                            TURNS & ZOOMS INTO FORWARD 4K OPTICAL SPHERE
+      // =======================================================================
+      if (p < 0.16) {
+        const tTurn = smoothstep(0.0, 0.11, p);
+        const tZoomIntoLens = smoothstep(0.09, 0.16, p);
 
         droneRoot.visible = true;
-        // Drone hovers and turns from facing camera (0 rad) to facing battlefield (PI rad)
-        const hoverY = Math.sin(elapsed * 2.4) * 2.5;
+        const hoverY = Math.sin(elapsed * 2.2) * 2.0;
         droneRoot.position.set(0, hoverY, 0);
-        // Turn 180 degrees smoothly while banking slightly
-        droneRoot.rotation.y = tIntro * Math.PI * 0.85;
-        droneRoot.rotation.z = Math.sin(tIntro * Math.PI) * -0.22;
-        droneRoot.rotation.x = Math.sin(tIntro * Math.PI) * 0.14;
 
-        // Camera starts in front of the drone (z = 240 * portraitPullback) and zooms straight into the blue optical sphere
-        const startZ = 225 * portraitPullback;
-        const startY = 42 * portraitPullback;
-        const camZ = startZ * (1 - tZoom) + 18 * tZoom;
-        const camY = startY * (1 - tZoom) + (hoverY + 2) * tZoom;
-        const camX = Math.sin(tIntro * Math.PI) * 28 * (1 - tZoom);
+        // Start at a crisp 3/4 studio presentation angle (0.52 rad), then turn toward battlefield (PI rad)
+        droneRoot.rotation.y = 0.52 * (1 - tTurn) + Math.PI * 0.88 * tTurn;
+        droneRoot.rotation.z = Math.sin(tTurn * Math.PI) * -0.22;
+        droneRoot.rotation.x = 0.12 * (1 - tTurn) + Math.sin(tTurn * Math.PI) * 0.16;
+
+        // Start zoomed out at distance ~435 so the entire SA-1 Vanguard airframe is framed in full detail,
+        // then swoop smoothly into the forward blue 4K optical gimbal at (0, 0, 58)
+        const startCamX = 225 * portraitZoomMultiplier;
+        const startCamY = 148 * portraitZoomMultiplier;
+        const startCamZ = 335 * portraitZoomMultiplier;
+
+        const midCamX = startCamX * (1 - tTurn);
+        const midCamY = startCamY * (1 - tTurn * 0.65);
+        const midCamZ = startCamZ * (1 - tTurn * 0.45);
+
+        const camX = THREE.MathUtils.lerp(midCamX, 0, tZoomIntoLens);
+        const camY = THREE.MathUtils.lerp(midCamY, hoverY + 2, tZoomIntoLens);
+        const camZ = THREE.MathUtils.lerp(midCamZ, 15, tZoomIntoLens);
 
         camera.position.set(camX, camY, camZ);
-        camera.lookAt(0, hoverY - 2 * tZoom, -120 * tZoom);
-        noseGlowLight.position.set(0, hoverY, 70);
+        camera.lookAt(0, hoverY, -110 * tZoomIntoLens);
 
         laserLine.visible = false;
         ballisticArc.visible = false;
       } else {
-        // Inside First-Person Camera POV (A.V.I.A.R.S. Optical Gimbal HUD)
+        // =====================================================================
+        // CONTINUOUS POV FLIGHT: LAND (16-44%) -> AIR (44-72%) -> NAVAL (72-100%)
+        // =====================================================================
         droneRoot.visible = false;
 
-        const flightT = clamp01((p - 0.18) / 0.82);
-        // Fly downrange from Z = -40 to Z = -670
-        const camZ = -40 - flightT * 630;
-        const camX = Math.sin(flightT * Math.PI * 2.0) * 14;
-        const baseAltY = curScenario === 'air' ? 6 : -4;
-        const camY = baseAltY + Math.cos(elapsed * 1.6) * 1.2;
+        const flightT = clamp01((p - 0.16) / 0.84);
+        // Continuous downrange travel from Z = -40 to Z = -1410
+        const camZ = -40 - flightT * 1370;
+
+        // Altitude transitions smoothly:
+        // Land (-4) -> Climb to Airspace (+54) -> Descend to Naval Overwatch (-2)
+        const climbToAir = smoothstep(0.40, 0.48, p);
+        const descendToNaval = smoothstep(0.68, 0.76, p);
+        const baseAltY = -4 + climbToAir * 58 - descendToNaval * 56;
+        const camY = baseAltY + Math.cos(elapsed * 1.5) * 1.2;
+        const camX = Math.sin(flightT * Math.PI * 3.0) * 14;
 
         camera.position.set(camX, camY, camZ);
 
-        // Determine active primary target index (0, 1, or 2) based on scroll phase
-        const activeIdx = p < 0.48 ? 0 : p < 0.75 ? 1 : 2;
-        const activeTargetMesh = targetMeshes[activeIdx];
-
-        // Smoothly orient gimbal lookAt bias toward the active target while flying forward
-        const forwardLook = new THREE.Vector3(
-          activeTargetMesh.position.x * 0.42,
-          activeTargetMesh.position.y * 0.45,
-          camZ - 190
+        // Smoothly orient gimbal lookAt toward the active target
+        const activeTargetObj = target3DObjects[activeTargetIdx];
+        const lookPt = new THREE.Vector3(
+          activeTargetObj.position.x * 0.55,
+          activeTargetObj.position.y * 0.75,
+          activeTargetObj.position.z
         );
-        camera.lookAt(forwardLook);
+        camera.lookAt(lookPt);
 
-        // Update Laser Designator & Ballistic Trajectory Curve from Drone Ventral Bay to Active Target
-        const droneBayOrigin = new THREE.Vector3(camX, camY - 6, camZ - 8);
-        const targetHitPt = activeTargetMesh.position.clone();
+        // Draw Laser Designator & Ballistic Trajectory Arc from Ventral Bay to Active Target
+        const droneBayOrigin = new THREE.Vector3(camX, camY - 6, camZ - 10);
+        const targetAimPt = activeTargetObj.position.clone().add(new THREE.Vector3(0, 6, 0));
 
         laserLine.visible = true;
         laserMat.color.setHex(accentHex);
-        laserGeom.setFromPoints([droneBayOrigin, targetHitPt]);
+        laserGeom.setFromPoints([droneBayOrigin, targetAimPt]);
 
         ballisticArc.visible = true;
         ballisticMat.color.setHex(accentHex);
         const curvePts: THREE.Vector3[] = [];
         for (let i = 0; i <= 24; i++) {
           const u = i / 24;
-          const bx = THREE.MathUtils.lerp(droneBayOrigin.x, targetHitPt.x, u);
-          const bz = THREE.MathUtils.lerp(droneBayOrigin.z, targetHitPt.z, u);
-          const arcLift = Math.sin(u * Math.PI) * (isAttack ? 14 : 6);
-          const by = THREE.MathUtils.lerp(droneBayOrigin.y, targetHitPt.y, u) + arcLift;
+          const bx = THREE.MathUtils.lerp(droneBayOrigin.x, targetAimPt.x, u);
+          const bz = THREE.MathUtils.lerp(droneBayOrigin.z, targetAimPt.z, u);
+          const arcLift = Math.sin(u * Math.PI) * (isAttack ? 16 : 6);
+          const by = THREE.MathUtils.lerp(droneBayOrigin.y, targetAimPt.y, u) + arcLift;
           curvePts.push(new THREE.Vector3(bx, by, bz));
         }
         ballisticGeom.setFromPoints(curvePts);
@@ -784,35 +1252,41 @@ export default function AviarsBattlefieldViewer() {
 
       renderer.render(scene, camera);
 
-      // Sync 2D Projected Target Lock Boxes & HUD Telemetry at ~30 FPS
+      // Sync 2D Projected Target Lock Boxes & HUD Telemetry (~30 FPS)
       if (elapsed - lastHudSync > 0.033) {
         lastHudSync = elapsed;
-        const activeIdx = p < 0.48 ? 0 : p < 0.75 ? 1 : 2;
 
-        const nextProjected: ProjectedTarget[] = activeTargets.map((tSpec, idx) => {
-          const worldPos = targetMeshes[idx].position;
-          const proj = projectWorldToScreen(worldPos, w, h);
-          const dist = Math.max(12, Math.round(camera.position.distanceTo(worldPos) * 1.4));
+        const nextProjected: ProjectedTarget[] = MISSION_TARGETS.map((tSpec, idx) => {
+          const worldCenter = target3DObjects[idx].position.clone().add(new THREE.Vector3(0, 7, 0));
+          const proj = projectWorldToScreen(worldCenter, w, h);
+          const dist = Math.max(18, Math.round(camera.position.distanceTo(worldCenter) * 1.3));
           return {
             ...tSpec,
             screenX: proj.x,
             screenY: proj.y,
             inFront: proj.inFront,
             distanceMeters: dist,
-            isPrimaryLock: p >= 0.16 && idx === activeIdx,
+            isPrimaryLock: p >= 0.16 && idx === activeTargetIdx,
           };
         });
         setProjectedTargets(nextProjected);
 
-        const secLabels = SCENARIO_CONFIGS[curScenario].secondaryLabels;
         const nextSec = secondaryNodes.map((sn, idx) => {
           const proj = projectWorldToScreen(sn.mesh.position, w, h);
+          const distZ = Math.abs(camera.position.z - sn.mesh.position.z);
           return {
             id: `sec-${idx}`,
-            label: secLabels[idx] || `TRACK #0${idx + 5}`,
+            label: sn.label,
             x: proj.x,
             y: proj.y,
-            visible: p >= 0.18 && proj.inFront && proj.x > 40 && proj.x < w - 40 && proj.y > 80 && proj.y < h - 120,
+            visible:
+              p >= 0.16 &&
+              proj.inFront &&
+              distZ < 420 &&
+              proj.x > 40 &&
+              proj.x < w - 40 &&
+              proj.y > 80 &&
+              proj.y < h - 140,
           };
         });
         setSecondaryTracks(nextSec);
@@ -841,8 +1315,10 @@ export default function AviarsBattlefieldViewer() {
   }, []);
 
   const isPovActive = scrollProgress >= 0.16;
+  const activeSector: ScenarioType =
+    scrollProgress < 0.44 ? 'land' : scrollProgress < 0.72 ? 'air' : 'naval';
   const activePhaseIndex =
-    scrollProgress < 0.18 ? 1 : scrollProgress < 0.48 ? 2 : scrollProgress < 0.75 ? 3 : 4;
+    scrollProgress < 0.16 ? 1 : scrollProgress < 0.44 ? 2 : scrollProgress < 0.72 ? 3 : 4;
 
   const isAttack = missionMode === 'attack';
   const accentColor = isAttack ? '#ef4444' : '#00ff41';
@@ -850,80 +1326,78 @@ export default function AviarsBattlefieldViewer() {
   const accentTextClass = isAttack ? 'text-red-400' : 'text-[#00ff41]';
   const accentBgClass = isAttack ? 'bg-red-500/15' : 'bg-[#00ff41]/15';
 
-  const currentScenarioData = SCENARIO_CONFIGS[scenario];
   const primaryLockedTarget =
     projectedTargets.find((t) => t.isPrimaryLock) || projectedTargets[0] || null;
 
   const phases = [
     {
       phase: 1,
-      shortTitle: 'POV Entry',
-      range: '0% – 18%',
-      targetP: 0.04,
-      title: 'SA-1 Optical Gimbal Entry',
-      metric: '3RD-PERSON → 4K POV ZOOM',
+      shortTitle: 'SA-1 → POV',
+      range: '0% – 16%',
+      targetP: 0.03,
+      title: 'SA-1 Airframe → Optical POV',
+      metric: '3RD-PERSON STUDIO → 4K POV',
     },
     {
       phase: 2,
-      shortTitle: 'Sensor Fusion',
-      range: '18% – 48%',
-      targetP: 0.32,
-      title: '120 FPS Multi-Spectral Lock',
-      metric: '4K + THERMAL IR + SAR',
+      shortTitle: 'Land Sector',
+      range: '16% – 44%',
+      targetP: 0.24,
+      title: 'Land // Urban Battlefield',
+      metric: 'SAM LAUNCHER & MBT CONVOY',
     },
     {
       phase: 3,
-      shortTitle: 'Neural Track',
-      range: '48% – 75%',
-      targetP: 0.61,
-      title: 'GPS-Denied VIO & EW Uplink',
-      metric: '64 TARGETS // AES-256 FHSS',
+      shortTitle: 'Air Sector',
+      range: '44% – 72%',
+      targetP: 0.52,
+      title: 'Air // Counter-UAS Intercept',
+      metric: 'STEALTH UCAV & EW AIRCRAFT',
     },
     {
       phase: 4,
-      shortTitle: 'Edge Strike',
-      range: '75% – 100%',
-      targetP: 0.88,
-      title: 'Sub-5ms TPU & Dual-Mode Lock',
-      metric: '< 5 MS TPU // VENTRAL BAY',
+      shortTitle: 'Naval Sector',
+      range: '72% – 100%',
+      targetP: 0.80,
+      title: 'Naval // Singapore Strait',
+      metric: 'DARK SHIP & FAST ATTACK CRAFT',
     },
   ];
 
-  // Clamp primary target screen coordinates so HUD reticles stay inside the viewport
   const clampedTargetX = primaryLockedTarget
-    ? Math.max(70, Math.min(viewportSize.width - 70, primaryLockedTarget.screenX))
+    ? Math.max(75, Math.min(viewportSize.width - 75, primaryLockedTarget.screenX))
     : viewportSize.width * 0.5;
   const clampedTargetY = primaryLockedTarget
-    ? Math.max(120, Math.min(viewportSize.height - 210, primaryLockedTarget.screenY))
-    : viewportSize.height * 0.45;
+    ? Math.max(125, Math.min(viewportSize.height - 235, primaryLockedTarget.screenY))
+    : viewportSize.height * 0.44;
 
   return (
-    <div ref={containerRef} className="relative w-full h-[380vh] sm:h-[440vh] lg:h-[520vh]">
+    <div ref={containerRef} className="relative w-full h-[520vh] sm:h-[580vh] lg:h-[680vh]">
       {/* Sticky Full-Viewport 3D A.V.I.A.R.S. Tactical POV Stage */}
-      <div className="sticky top-16 sm:top-20 lg:top-24 w-full h-[calc(100svh-4rem)] sm:h-[calc(100svh-5rem)] lg:h-[calc(100vh-6rem)] overflow-hidden bg-[#07090D] border-y border-white/10">
+      <div className="sticky top-16 sm:top-20 lg:top-24 w-full h-[calc(100svh-4rem)] sm:h-[calc(100svh-5rem)] lg:h-[calc(100vh-6rem)] overflow-hidden bg-[#090B10] border-y border-white/10">
         {/* Three.js WebGL Canvas */}
         <div ref={canvasWrapperRef} className="relative z-10 w-full h-full" />
 
-        {/* Optical Lens Vignette & Tactical Scanline Overlay when inside Camera POV */}
+        {/* Subtle Optical Lens Vignette */}
         <div
           className="pointer-events-none absolute inset-0 z-15 transition-opacity duration-500"
           style={{
-            opacity: isPovActive ? 1 : 0.35,
+            opacity: isPovActive ? 1 : 0.25,
             background: isAttack
-              ? 'radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.03) 0%, rgba(7, 9, 13, 0.78) 92%)'
-              : 'radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.03) 0%, rgba(7, 9, 13, 0.78) 92%)',
+              ? 'radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.03) 0%, rgba(9, 11, 16, 0.72) 92%)'
+              : 'radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.03) 0%, rgba(9, 11, 16, 0.72) 92%)',
           }}
         />
 
-        {/* SVG Tactical HUD Overlay — Crosshairs, Target Lock Reticles & 1px Leader Lines */}
+        {/* SVG Tactical HUD Overlay — Bore-Sight, Target Reticles & Leader Lines */}
         <svg
           className="pointer-events-none absolute inset-0 z-20 w-full h-full"
           viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}
           preserveAspectRatio="none"
         >
-          {/* Center Optical Gimbal Bore-Sight Crosshair (Active in POV) */}
+          {/* Center Optical Gimbal Bore-Sight Crosshair */}
           {isPovActive && (
-            <g opacity="0.45">
+            <g opacity="0.4">
               <circle
                 cx={viewportSize.width / 2}
                 cy={viewportSize.height / 2}
@@ -949,29 +1423,13 @@ export default function AviarsBattlefieldViewer() {
                 stroke={accentColor}
                 strokeWidth="1"
               />
-              <line
-                x1={viewportSize.width / 2}
-                y1={viewportSize.height / 2 - 48}
-                x2={viewportSize.width / 2}
-                y2={viewportSize.height / 2 - 18}
-                stroke={accentColor}
-                strokeWidth="1"
-              />
-              <line
-                x1={viewportSize.width / 2}
-                y1={viewportSize.height / 2 + 18}
-                x2={viewportSize.width / 2}
-                y2={viewportSize.height / 2 + 48}
-                stroke={accentColor}
-                strokeWidth="1"
-              />
             </g>
           )}
 
-          {/* Secondary Multi-Target Neural Tracks (Up to 64 Simultaneous Targets Demo) */}
+          {/* Secondary Multi-Target Neural Tracks */}
           {secondaryTracks.map((st) =>
             st.visible ? (
-              <g key={st.id} opacity="0.65">
+              <g key={st.id} opacity="0.7">
                 <rect
                   x={st.x - 16}
                   y={st.y - 16}
@@ -996,20 +1454,18 @@ export default function AviarsBattlefieldViewer() {
             ) : null
           )}
 
-          {/* Primary Locked Target Bounding Reticle + Leader Line to Explainer Card */}
+          {/* Primary Locked Target Bounding Reticle + Leader Line */}
           {isPovActive && primaryLockedTarget && (
             <g>
-              {/* Outer Target Lock Box */}
               <rect
-                x={clampedTargetX - 38}
-                y={clampedTargetY - 38}
-                width="76"
-                height="76"
+                x={clampedTargetX - 42}
+                y={clampedTargetY - 42}
+                width="84"
+                height="84"
                 fill="none"
                 stroke={accentColor}
                 strokeWidth="1.5"
               />
-              {/* Inner Target Diamond / Pip */}
               <circle
                 cx={clampedTargetX}
                 cy={clampedTargetY}
@@ -1020,22 +1476,23 @@ export default function AviarsBattlefieldViewer() {
               />
               <circle cx={clampedTargetX} cy={clampedTargetY} r="2" fill={accentColor} />
 
-              {/* Leader Line on Desktop (lg+) connecting Target Lock Box to the Right-Hand Explainer Card */}
               {viewportSize.width >= 1024 ? (
                 <polyline
-                  points={`${clampedTargetX + 38},${clampedTargetY} ${clampedTargetX + 82},${clampedTargetY - 22} ${
-                    viewportSize.width - 440
-                  },${Math.max(190, Math.min(viewportSize.height - 260, clampedTargetY - 22))}`}
+                  points={`${clampedTargetX + 42},${clampedTargetY} ${clampedTargetX + 86},${
+                    clampedTargetY - 22
+                  } ${viewportSize.width - 440},${Math.max(
+                    190,
+                    Math.min(viewportSize.height - 260, clampedTargetY - 22)
+                  )}`}
                   fill="none"
                   stroke={accentColor}
                   strokeWidth="1.2"
                 />
               ) : (
-                /* Leader Line on Mobile/Tablet (< lg) connecting Target Lock Box down to the Active Card */
                 <polyline
-                  points={`${clampedTargetX},${clampedTargetY + 38} ${
-                    viewportSize.width * 0.5
-                  },${viewportSize.height - 215}`}
+                  points={`${clampedTargetX},${clampedTargetY + 42} ${viewportSize.width * 0.5},${
+                    viewportSize.height - 215
+                  }`}
                   fill="none"
                   stroke={accentColor}
                   strokeWidth="1"
@@ -1047,9 +1504,9 @@ export default function AviarsBattlefieldViewer() {
         </svg>
 
         {/* =====================================================================
-            TOP BAR HUD — Scenario Switcher (Land / Air / Naval) + Mode Toggle (Recon / Attack)
+            TOP BAR HUD — Live Scroll Sector Progression + Recon / Attack Toggle
            ===================================================================== */}
-        <div className="pointer-events-none absolute z-30 top-3 sm:top-5 lg:top-6 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 sm:gap-3">
+        <div className="pointer-events-none absolute z-30 top-3 sm:top-5 lg:top-6 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: Active Sector & Camera POV Status */}
           <div className="pointer-events-auto flex items-center justify-between sm:justify-start gap-3 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1061,42 +1518,52 @@ export default function AviarsBattlefieldViewer() {
                 <p
                   className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.18em] font-bold truncate ${accentTextClass}`}
                 >
-                  {isPovActive
-                    ? `A.V.I.A.R.S. CAMERA POV // ${currentScenarioData.sectorName}`
-                    : 'SA-1 VANGUARD // EXTERNAL AIRFRAME VIEW (SCROLL TO ENTER POV)'}
+                  {isPovActive && primaryLockedTarget
+                    ? primaryLockedTarget.sectorLabel
+                    : 'SA-1 "VANGUARD" // EXTERNAL STUDIO AIRFRAME (SCROLL TO ENTER POV)'}
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-white truncate">
-                  {phases[activePhaseIndex - 1].title}{' '}
-                  <span className="text-white/45 font-mono text-[11px] ml-1.5">
-                    [{currentScenarioData.altitudeLabel}]
-                  </span>
+                  {isPovActive && primaryLockedTarget
+                    ? `LOCKED: ${primaryLockedTarget.name}`
+                    : '3/4 Isometric Airframe Inspection → 4K Optical Gimbal Zoom'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Right: Scenario Tabs (Land / Air / Naval) + Recon vs Attack Mode Switcher */}
+          {/* Right: Continuous Domain Progression Indicator + Recon/Attack Mode Switcher */}
           <div className="pointer-events-auto flex flex-wrap items-center justify-between sm:justify-end gap-2">
-            {/* 3 Scenario Tabs */}
-            <div className="flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1">
-              {(['land', 'air', 'naval'] as ScenarioType[]).map((sc) => {
-                const active = scenario === sc;
-                return (
-                  <button
-                    key={sc}
-                    type="button"
-                    onClick={() => setScenario(sc)}
-                    className={`rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
-                      active
-                        ? 'bg-white text-black font-bold shadow'
-                        : 'text-white/65 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <span className="sm:hidden">{SCENARIO_CONFIGS[sc].shortLabel}</span>
-                    <span className="hidden sm:inline">{SCENARIO_CONFIGS[sc].label}</span>
-                  </button>
-                );
-              })}
+            {/* Scroll-Driven Domain Progression Badge (Land → Air → Naval) */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider">
+              <span
+                className={
+                  isPovActive && activeSector === 'land'
+                    ? 'text-[#00ff41] font-bold'
+                    : 'text-white/40'
+                }
+              >
+                01 LAND
+              </span>
+              <span className="text-white/25">→</span>
+              <span
+                className={
+                  isPovActive && activeSector === 'air'
+                    ? 'text-[#00ff41] font-bold'
+                    : 'text-white/40'
+                }
+              >
+                02 AIR
+              </span>
+              <span className="text-white/25">→</span>
+              <span
+                className={
+                  isPovActive && activeSector === 'naval'
+                    ? 'text-[#00ff41] font-bold'
+                    : 'text-white/40'
+                }
+              >
+                03 NAVAL
+              </span>
             </div>
 
             {/* Dual Operational Mode Switcher: Recon Mode vs Attack Mode */}
@@ -1104,7 +1571,7 @@ export default function AviarsBattlefieldViewer() {
               <button
                 type="button"
                 onClick={() => setMissionMode('recon')}
-                className={`rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                className={`rounded-lg px-3 py-1.5 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
                   missionMode === 'recon'
                     ? 'bg-[#00ff41] text-black font-bold shadow-[0_0_16px_rgba(0,255,65,0.4)]'
                     : 'text-white/65 hover:text-white'
@@ -1115,7 +1582,7 @@ export default function AviarsBattlefieldViewer() {
               <button
                 type="button"
                 onClick={() => setMissionMode('attack')}
-                className={`rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                className={`rounded-lg px-3 py-1.5 sm:px-3.5 sm:py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
                   missionMode === 'attack'
                     ? 'bg-red-500 text-white font-bold shadow-[0_0_16px_rgba(239,68,68,0.5)]'
                     : 'text-white/65 hover:text-white'
@@ -1128,36 +1595,37 @@ export default function AviarsBattlefieldViewer() {
         </div>
 
         {/* =====================================================================
-            PHASE 1 PROMPT OVERLAY (When viewing external SA-1 Drone before POV)
+            PHASE 1 PROMPT OVERLAY (Positioned cleanly above bottom dock)
            ===================================================================== */}
         {!isPovActive && (
-          <div className="pointer-events-none absolute inset-x-0 top-[24%] sm:top-[22%] z-25 flex justify-center px-4">
-            <div className="bg-black/75 backdrop-blur-xl border border-sky-400/40 rounded-2xl px-5 py-3.5 sm:px-7 sm:py-4 text-center max-w-xl shadow-2xl">
+          <div className="pointer-events-none absolute inset-x-0 bottom-24 sm:bottom-28 z-25 flex justify-center px-4">
+            <div className="bg-black/80 backdrop-blur-xl border border-sky-400/40 rounded-2xl px-5 py-3 sm:px-7 sm:py-3.5 text-center max-w-xl shadow-2xl">
               <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.22em] text-sky-400 font-bold mb-1">
-                SA-1 &ldquo;VANGUARD&rdquo; // FORWARD 4K OPTICAL SPHERE
+                SA-1 &ldquo;VANGUARD&rdquo; // CONTINUOUS LAND → AIR → NAVAL MISSION
               </p>
               <p className="text-xs sm:text-sm text-white/85">
-                Scroll down to turn the SA-1 airframe and zoom directly into the{' '}
-                <strong className="text-sky-300">A.V.I.A.R.S. First-Person Battlefield POV</strong>.
+                Scroll down to bank the SA-1 airframe, zoom into the{' '}
+                <strong className="text-sky-300">4K Sapphire Optical Gimbal</strong>, and fly
+                through Land, Air, and Naval battlefields.
               </p>
             </div>
           </div>
         )}
 
         {/* =====================================================================
-            FLOATING TARGET LOCK TELEMETRY TAG BELOW RETICLE (Shows Target + Component)
+            FLOATING TARGET LOCK TAG DIRECTLY BELOW RETICLE (Target + Component)
            ===================================================================== */}
         {isPovActive && primaryLockedTarget && (
           <div
             className="pointer-events-none absolute z-25 hidden sm:block transition-all duration-150"
             style={{
               left: `${Math.max(20, Math.min(viewportSize.width - 340, clampedTargetX - 145))}px`,
-              top: `${Math.max(90, Math.min(viewportSize.height - 230, clampedTargetY + 44))}px`,
-              width: '290px',
+              top: `${Math.max(95, Math.min(viewportSize.height - 235, clampedTargetY + 46))}px`,
+              width: '295px',
             }}
           >
             <div
-              className={`bg-black/88 backdrop-blur-md border ${accentBorderClass} rounded-xl px-3.5 py-2.5 font-mono text-[10px] shadow-2xl`}
+              className={`bg-black/90 backdrop-blur-md border ${accentBorderClass} rounded-xl px-3.5 py-2.5 font-mono text-[10px] shadow-2xl`}
             >
               <div className="flex items-center justify-between gap-2 mb-0.5">
                 <span className={`font-bold ${accentTextClass}`}>{primaryLockedTarget.code}</span>
@@ -1185,7 +1653,7 @@ export default function AviarsBattlefieldViewer() {
         {isPovActive && primaryLockedTarget && (
           <div className="pointer-events-none absolute inset-y-0 right-7 xl:right-12 z-30 hidden lg:flex items-center">
             <div
-              className={`pointer-events-auto w-[390px] xl:w-[420px] bg-black/85 backdrop-blur-2xl border ${accentBorderClass} rounded-2xl p-6 shadow-2xl transition-all duration-300`}
+              className={`pointer-events-auto w-[390px] xl:w-[420px] bg-black/88 backdrop-blur-2xl border ${accentBorderClass} rounded-2xl p-6 shadow-2xl transition-all duration-300`}
             >
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span
@@ -1246,7 +1714,7 @@ export default function AviarsBattlefieldViewer() {
             {/* Mobile & Tablet Active Target Lock Explainer Card (< lg) */}
             {isPovActive && primaryLockedTarget && (
               <div
-                className={`lg:hidden bg-black/88 backdrop-blur-xl border ${accentBorderClass} rounded-xl p-3.5 sm:p-4 shadow-2xl`}
+                className={`lg:hidden bg-black/90 backdrop-blur-xl border ${accentBorderClass} rounded-xl p-3.5 sm:p-4 shadow-2xl`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span
@@ -1274,7 +1742,7 @@ export default function AviarsBattlefieldViewer() {
               </div>
             )}
 
-            {/* 4-Phase Interactive Stepper Bar */}
+            {/* 4-Phase Continuous Scroll Stepper Bar (SA-1 -> Land -> Air -> Naval) */}
             <div className="bg-black/85 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 shadow-2xl">
               <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
                 {phases.map((ph) => {
