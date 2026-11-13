@@ -6,6 +6,15 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 type ScenarioType = 'land' | 'air' | 'naval';
 type MissionMode = 'recon' | 'attack';
+type SensorVisionMode = 'optical' | 'thermal' | 'sar';
+
+interface StrikeHudState {
+  status: 'idle' | 'inbound' | 'impact';
+  progress: number;
+  screenX: number;
+  screenY: number;
+  visible: boolean;
+}
 
 interface TargetSpec {
   id: string;
@@ -539,15 +548,32 @@ export default function AviarsBattlefieldViewer() {
 
   const [scrollProgress, setScrollProgress] = useState(0);
   const [missionMode, setMissionMode] = useState<MissionMode>('recon');
+  const [sensorVision, setSensorVision] = useState<SensorVisionMode>('optical');
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 });
   const [projectedTargets, setProjectedTargets] = useState<ProjectedTarget[]>([]);
   const [secondaryTracks, setSecondaryTracks] = useState<
     { id: string; label: string; x: number; y: number; visible: boolean }[]
   >([]);
+  const [strikeHud, setStrikeHud] = useState<StrikeHudState>({
+    status: 'idle',
+    progress: 0,
+    screenX: 640,
+    screenY: 400,
+    visible: false,
+  });
 
   const progressRef = useRef(0);
   const smoothedProgressRef = useRef(0);
   const missionModeRef = useRef<MissionMode>('recon');
+  const sensorVisionRef = useRef<SensorVisionMode>('optical');
+  const strikeStartElapsedRef = useRef<number>(-999);
+  const lastAutoStrikeKeyRef = useRef<string>('');
+
+  const triggerKineticStrike = () => {
+    setMissionMode('attack');
+    missionModeRef.current = 'attack';
+    strikeStartElapsedRef.current = -1; // Signal animate() loop to start strike at current clock time
+  };
 
   useEffect(() => {
     progressRef.current = scrollProgress;
@@ -555,7 +581,14 @@ export default function AviarsBattlefieldViewer() {
 
   useEffect(() => {
     missionModeRef.current = missionMode;
+    if (missionMode === 'attack') {
+      strikeStartElapsedRef.current = -1;
+    }
   }, [missionMode]);
+
+  useEffect(() => {
+    sensorVisionRef.current = sensorVision;
+  }, [sensorVision]);
 
   // Bind scroll progress (0.0 -> 1.0)
   useEffect(() => {
@@ -1069,6 +1102,44 @@ export default function AviarsBattlefieldViewer() {
     const ballisticArc = new THREE.Line(ballisticGeom, ballisticMat);
     scene.add(ballisticArc);
 
+    // 3D Precision Micro-Munition + Impact Shockwave Ring for Attack Mode Kinetic Intercept
+    const munitionGroup = new THREE.Group();
+    munitionGroup.visible = false;
+    const munitionBodyMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const munitionGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const dartCone = new THREE.ConeGeometry(1.4, 6.5, 12);
+    dartCone.rotateX(Math.PI / 2);
+    munitionGroup.add(new THREE.Mesh(dartCone, munitionBodyMat));
+    const dartHalo = new THREE.SphereGeometry(2.6, 12, 12);
+    munitionGroup.add(new THREE.Mesh(dartHalo, munitionGlowMat));
+    scene.add(munitionGroup);
+
+    const impactRingGeom = new THREE.RingGeometry(1.2, 2.6, 36);
+    impactRingGeom.rotateX(-Math.PI / 2);
+    const impactRingMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.0,
+    });
+    const impactRingMesh = new THREE.Mesh(impactRingGeom, impactRingMat);
+    impactRingMesh.visible = false;
+    scene.add(impactRingMesh);
+
+    const impactFlashGeom = new THREE.SphereGeometry(4.2, 18, 18);
+    const impactFlashMat = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
+      transparent: true,
+      opacity: 0.0,
+    });
+    const impactFlashMesh = new THREE.Mesh(impactFlashGeom, impactFlashMat);
+    impactFlashMesh.visible = false;
+    scene.add(impactFlashMesh);
+
     // =========================================================================
     // 4. ANIMATION & CONTINUOUS SCROLL FLIGHT LOOP (LAND -> AIR -> NAVAL)
     // =========================================================================
@@ -1095,13 +1166,63 @@ export default function AviarsBattlefieldViewer() {
       const p = smoothedProgressRef.current;
 
       const curMode = missionModeRef.current;
+      const curVision = sensorVisionRef.current;
       const isAttack = curMode === 'attack';
       const accentHex = isAttack ? 0xef4444 : 0x00ff41;
 
-      // Update Target Highlight Colors (Emerald in Recon, Crimson in Attack)
-      thermalHotspotMat.color.setHex(isAttack ? 0xf87171 : 0x10b981);
-      thermalHotspotMat.emissive.setHex(accentHex);
-      targetEdgeMat.color.setHex(accentHex);
+      // Apply Live Sensor-Fusion Vision Spectrum (4K Optical vs LWIR Thermal vs SAR Radar)
+      if (curVision === 'thermal') {
+        scene.background = new THREE.Color('#04040A');
+        (scene.fog as THREE.FogExp2).color.setHex(0x04040a);
+        bldgMat.color.setHex(0x090b16);
+        bldgMat.opacity = 0.94;
+        bldgMat.wireframe = false;
+        bldgEdgeMat.color.setHex(0x312e81);
+        bldgEdgeMat.opacity = 0.45;
+        armorMat.color.setHex(0x4c1d95);
+        armorMat.wireframe = false;
+        darkMetalMat.color.setHex(0x1e1b4b);
+        thermalHotspotMat.color.setHex(0xfef08a);
+        thermalHotspotMat.emissive.setHex(isAttack ? 0xef4444 : 0xf59e0b);
+        thermalHotspotMat.emissiveIntensity = 1.65;
+        targetEdgeMat.color.setHex(0xfbbf24);
+        targetEdgeMat.opacity = 0.9;
+        seaMat.color.setHex(0x312e81);
+      } else if (curVision === 'sar') {
+        scene.background = new THREE.Color('#02080D');
+        (scene.fog as THREE.FogExp2).color.setHex(0x02080d);
+        bldgMat.color.setHex(0x041624);
+        bldgMat.opacity = 0.28;
+        bldgMat.wireframe = true;
+        bldgEdgeMat.color.setHex(0x38bdf8);
+        bldgEdgeMat.opacity = 0.82;
+        armorMat.color.setHex(0x0c4a6e);
+        armorMat.wireframe = true;
+        darkMetalMat.color.setHex(0x082f49);
+        thermalHotspotMat.color.setHex(0x38bdf8);
+        thermalHotspotMat.emissive.setHex(accentHex);
+        thermalHotspotMat.emissiveIntensity = 1.25;
+        targetEdgeMat.color.setHex(0x38bdf8);
+        targetEdgeMat.opacity = 0.95;
+        seaMat.color.setHex(0x00ff41);
+      } else {
+        scene.background = new THREE.Color('#090B10');
+        (scene.fog as THREE.FogExp2).color.setHex(0x090b10);
+        bldgMat.color.setHex(0x111927);
+        bldgMat.opacity = 0.92;
+        bldgMat.wireframe = false;
+        bldgEdgeMat.color.setHex(0x334155);
+        bldgEdgeMat.opacity = 0.55;
+        armorMat.color.setHex(0x273244);
+        armorMat.wireframe = false;
+        darkMetalMat.color.setHex(0x151c28);
+        thermalHotspotMat.color.setHex(isAttack ? 0xf87171 : 0x10b981);
+        thermalHotspotMat.emissive.setHex(accentHex);
+        thermalHotspotMat.emissiveIntensity = 0.75;
+        targetEdgeMat.color.setHex(accentHex);
+        targetEdgeMat.opacity = 0.65;
+        seaMat.color.setHex(0x0ea5e9);
+      }
       targetRingMats.forEach((rm) => rm.color.setHex(accentHex));
 
       // Spin SA-1 Vanguard rotors
@@ -1193,6 +1314,9 @@ export default function AviarsBattlefieldViewer() {
 
         laserLine.visible = false;
         ballisticArc.visible = false;
+        munitionGroup.visible = false;
+        impactRingMesh.visible = false;
+        impactFlashMesh.visible = false;
       } else {
         // =====================================================================
         // CONTINUOUS POV FLIGHT: LAND (16-44%) -> AIR (44-72%) -> NAVAL (72-100%)
@@ -1242,6 +1366,72 @@ export default function AviarsBattlefieldViewer() {
           curvePts.push(new THREE.Vector3(bx, by, bz));
         }
         ballisticGeom.setFromPoints(curvePts);
+
+        // ===================================================================
+        // ANIMATED KINETIC MICRO-MUNITION LAUNCH & SHOCKWAVE INTERCEPT
+        // ===================================================================
+        if (isAttack) {
+          const autoKey = `attack-${activeTargetIdx}`;
+          if (lastAutoStrikeKeyRef.current !== autoKey) {
+            lastAutoStrikeKeyRef.current = autoKey;
+            strikeStartElapsedRef.current = elapsed;
+          } else if (strikeStartElapsedRef.current === -1) {
+            strikeStartElapsedRef.current = elapsed;
+          }
+
+          const dtStrike = elapsed - strikeStartElapsedRef.current;
+          const flightDuration = 1.15;
+          const impactDuration = 1.15;
+
+          if (dtStrike >= 0 && dtStrike <= flightDuration) {
+            // Munition inbound along parabolic ballistic curve
+            const u = clamp01(dtStrike / flightDuration);
+            const uNext = clamp01((dtStrike + 0.04) / flightDuration);
+            const mx = THREE.MathUtils.lerp(droneBayOrigin.x, targetAimPt.x, u);
+            const mz = THREE.MathUtils.lerp(droneBayOrigin.z, targetAimPt.z, u);
+            const my =
+              THREE.MathUtils.lerp(droneBayOrigin.y, targetAimPt.y, u) +
+              Math.sin(u * Math.PI) * 16;
+
+            const nx = THREE.MathUtils.lerp(droneBayOrigin.x, targetAimPt.x, uNext);
+            const nz = THREE.MathUtils.lerp(droneBayOrigin.z, targetAimPt.z, uNext);
+            const ny =
+              THREE.MathUtils.lerp(droneBayOrigin.y, targetAimPt.y, uNext) +
+              Math.sin(uNext * Math.PI) * 16;
+
+            munitionGroup.visible = true;
+            munitionGroup.position.set(mx, my, mz);
+            munitionGroup.lookAt(nx, ny, nz);
+
+            impactRingMesh.visible = false;
+            impactFlashMesh.visible = false;
+          } else if (dtStrike > flightDuration && dtStrike <= flightDuration + impactDuration) {
+            // Kinetic Detonation Shockwave at Target
+            const k = clamp01((dtStrike - flightDuration) / impactDuration);
+            munitionGroup.visible = false;
+
+            impactRingMesh.visible = true;
+            impactRingMesh.position.copy(targetAimPt);
+            const ringScale = 1.0 + k * 14.5;
+            impactRingMesh.scale.set(ringScale, ringScale, ringScale);
+            impactRingMat.opacity = (1.0 - k) * 0.92;
+
+            impactFlashMesh.visible = true;
+            impactFlashMesh.position.copy(targetAimPt);
+            const flashScale = 0.6 + Math.sin(k * Math.PI) * 3.2;
+            impactFlashMesh.scale.set(flashScale, flashScale, flashScale);
+            impactFlashMat.opacity = (1.0 - k) * 0.85;
+          } else {
+            munitionGroup.visible = false;
+            impactRingMesh.visible = false;
+            impactFlashMesh.visible = false;
+          }
+        } else {
+          lastAutoStrikeKeyRef.current = '';
+          munitionGroup.visible = false;
+          impactRingMesh.visible = false;
+          impactFlashMesh.visible = false;
+        }
       }
 
       renderer.render(scene, camera);
@@ -1284,6 +1474,38 @@ export default function AviarsBattlefieldViewer() {
           };
         });
         setSecondaryTracks(nextSec);
+
+        // Sync Kinetic Strike HUD Telemetry
+        if (p >= 0.16 && isAttack) {
+          const dtStrike = elapsed - strikeStartElapsedRef.current;
+          if (dtStrike >= 0 && dtStrike <= 1.15 && munitionGroup.visible) {
+            const mProj = projectWorldToScreen(munitionGroup.position, w, h);
+            setStrikeHud({
+              status: 'inbound',
+              progress: clamp01(dtStrike / 1.15),
+              screenX: mProj.x,
+              screenY: mProj.y,
+              visible: mProj.inFront,
+            });
+          } else if (dtStrike > 1.15 && dtStrike <= 2.9) {
+            const tProj = projectWorldToScreen(
+              target3DObjects[activeTargetIdx].position.clone().add(new THREE.Vector3(0, 7, 0)),
+              w,
+              h
+            );
+            setStrikeHud({
+              status: 'impact',
+              progress: clamp01((dtStrike - 1.15) / 1.75),
+              screenX: tProj.x,
+              screenY: tProj.y,
+              visible: tProj.inFront,
+            });
+          } else {
+            setStrikeHud((prev) => (prev.status === 'idle' ? prev : { ...prev, status: 'idle', visible: false }));
+          }
+        } else {
+          setStrikeHud((prev) => (prev.status === 'idle' ? prev : { ...prev, status: 'idle', visible: false }));
+        }
       }
     };
 
@@ -1335,16 +1557,67 @@ export default function AviarsBattlefieldViewer() {
         {/* Three.js WebGL Canvas */}
         <div ref={canvasWrapperRef} className="relative z-10 w-full h-full" />
 
-        {/* Subtle Optical Lens Vignette */}
+        {/* Subtle Optical / Thermal / SAR Spectrum Vignette & Scanline Filter */}
         <div
-          className="pointer-events-none absolute inset-0 z-15 transition-opacity duration-500"
+          className="pointer-events-none absolute inset-0 z-15 transition-all duration-500"
           style={{
-            opacity: isPovActive ? 1 : 0.25,
-            background: isAttack
-              ? 'radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.03) 0%, rgba(9, 11, 16, 0.72) 92%)'
-              : 'radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.03) 0%, rgba(9, 11, 16, 0.72) 92%)',
+            opacity: isPovActive ? 1 : 0.3,
+            background:
+              sensorVision === 'thermal'
+                ? 'radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.08) 0%, rgba(18, 9, 36, 0.78) 92%), repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px)'
+                : sensorVision === 'sar'
+                ? 'radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.09) 0%, rgba(2, 10, 18, 0.84) 92%), repeating-linear-gradient(90deg, rgba(56,189,248,0.03) 0px, rgba(56,189,248,0.03) 1px, transparent 1px, transparent 24px)'
+                : isAttack
+                ? 'radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.03) 0%, rgba(9, 11, 16, 0.72) 92%)'
+                : 'radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.03) 0%, rgba(9, 11, 16, 0.72) 92%)',
           }}
         />
+
+        {/* Active Sensor Spectrum Calibration Badge (Left Side HUD in POV) */}
+        {isPovActive && (
+          <div className="pointer-events-none hidden md:flex flex-col gap-1.5 absolute left-6 lg:left-10 top-24 z-25 bg-black/75 backdrop-blur-md border border-white/10 rounded-xl px-3.5 py-2.5 font-mono text-[10px]">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor:
+                    sensorVision === 'thermal'
+                      ? '#fbbf24'
+                      : sensorVision === 'sar'
+                      ? '#38bdf8'
+                      : '#00ff41',
+                }}
+              />
+              <span className="text-white font-bold uppercase tracking-wider">
+                {sensorVision === 'thermal'
+                  ? 'LWIR THERMAL // 8–14 μm FLIR'
+                  : sensorVision === 'sar'
+                  ? 'SAR X-BAND // DOPPLER POINT CLOUD'
+                  : '4K SAPPHIRE // MULTI-SPECTRAL RGB'}
+              </span>
+            </div>
+            {sensorVision === 'thermal' && (
+              <div className="space-y-1 pt-0.5">
+                <div className="h-1.5 w-44 rounded-full bg-gradient-to-r from-indigo-950 via-purple-700 to-yellow-300" />
+                <div className="flex justify-between text-[9px] text-amber-300/80">
+                  <span>285K COLD</span>
+                  <span>335K</span>
+                  <span>395K HOT</span>
+                </div>
+              </div>
+            )}
+            {sensorVision === 'sar' && (
+              <p className="text-[9px] text-sky-300/80">
+                 SYNTHETIC APERTURE RADAR // ZERO-VISIBILITY PENETRATION: 100%
+              </p>
+            )}
+            {sensorVision === 'optical' && (
+              <p className="text-[9px] text-white/55">
+                120 FPS CO-ALIGNED OPTICAL + 3× QUARTZ LIDAR LOCK
+              </p>
+            )}
+          </div>
+        )}
 
         {/* SVG Tactical HUD Overlay — Bore-Sight, Target Reticles & Leader Lines */}
         <svg
@@ -1458,12 +1731,70 @@ export default function AviarsBattlefieldViewer() {
               )}
             </g>
           )}
+
+          {/* Animated Kinetic Micro-Munition In-Flight Reticle & Impact Shockwave HUD */}
+          {isPovActive && isAttack && strikeHud.visible && strikeHud.status === 'inbound' && (
+            <g>
+              <circle
+                cx={strikeHud.screenX}
+                cy={strikeHud.screenY}
+                r="12"
+                fill="none"
+                stroke="#fbbf24"
+                strokeWidth="1.8"
+              />
+              <circle cx={strikeHud.screenX} cy={strikeHud.screenY} r="3.5" fill="#ef4444" />
+              <text
+                x={strikeHud.screenX + 16}
+                y={strikeHud.screenY + 4}
+                fill="#fbbf24"
+                fontSize="10"
+                fontFamily="monospace"
+                fontWeight="bold"
+              >
+                {`AGM-M1 INBOUND [T-${((1 - strikeHud.progress) * 1.1).toFixed(1)}s]`}
+              </text>
+            </g>
+          )}
+
+          {isPovActive && isAttack && strikeHud.visible && strikeHud.status === 'impact' && (
+            <g>
+              <circle
+                cx={clampedTargetX}
+                cy={clampedTargetY}
+                r={26 + strikeHud.progress * 58}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="2.2"
+                opacity={Math.max(0, 1 - strikeHud.progress)}
+              />
+              <circle
+                cx={clampedTargetX}
+                cy={clampedTargetY}
+                r={14 + strikeHud.progress * 34}
+                fill="none"
+                stroke="#fbbf24"
+                strokeWidth="1.5"
+                opacity={Math.max(0, 1 - strikeHud.progress)}
+              />
+              <text
+                x={clampedTargetX - 88}
+                y={clampedTargetY - 52}
+                fill="#fbbf24"
+                fontSize="11"
+                fontFamily="monospace"
+                fontWeight="bold"
+              >
+                KINETIC IMPACT CONFIRMED // CEP 0.12m
+              </text>
+            </g>
+          )}
         </svg>
 
         {/* =====================================================================
-            TOP BAR HUD — Live Scroll Sector Progression + Recon / Attack Toggle
+            TOP BAR HUD — Live Scroll Sector + Sensor Spectrum + Recon / Attack
            ===================================================================== */}
-        <div className="pointer-events-none absolute z-30 top-3 sm:top-5 lg:top-6 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
+        <div className="pointer-events-none absolute z-30 top-3 sm:top-5 lg:top-6 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: Active Sector & Camera POV Status */}
           <div className="pointer-events-auto flex items-center justify-between sm:justify-start gap-3 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1488,10 +1819,10 @@ export default function AviarsBattlefieldViewer() {
             </div>
           </div>
 
-          {/* Right: Continuous Domain Progression Indicator + Recon/Attack Mode Switcher */}
+          {/* Right: Domain Progression + Sensor Vision Toggle + Recon/Attack Mode Switcher */}
           <div className="pointer-events-auto flex flex-wrap items-center justify-between sm:justify-end gap-2">
             {/* Scroll-Driven Domain Progression Badge (Land → Air → Naval) */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider">
+            <div className="hidden md:flex items-center gap-1.5 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider">
               <span
                 className={
                   isPovActive && activeSector === 'land'
@@ -1523,6 +1854,43 @@ export default function AviarsBattlefieldViewer() {
               </span>
             </div>
 
+            {/* Interactive Sensor-Fusion Vision Toggle (Optical 4K / Thermal LWIR / SAR Radar) */}
+            <div className="flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setSensorVision('optical')}
+                className={`rounded-lg px-2.5 py-1.5 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  sensorVision === 'optical'
+                    ? 'bg-white text-black font-bold shadow'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                4K Optical
+              </button>
+              <button
+                type="button"
+                onClick={() => setSensorVision('thermal')}
+                className={`rounded-lg px-2.5 py-1.5 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  sensorVision === 'thermal'
+                    ? 'bg-amber-400 text-black font-bold shadow-[0_0_14px_rgba(251,191,36,0.45)]'
+                    : 'text-white/60 hover:text-amber-300'
+                }`}
+              >
+                Thermal LWIR
+              </button>
+              <button
+                type="button"
+                onClick={() => setSensorVision('sar')}
+                className={`rounded-lg px-2.5 py-1.5 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  sensorVision === 'sar'
+                    ? 'bg-sky-400 text-black font-bold shadow-[0_0_14px_rgba(56,189,248,0.45)]'
+                    : 'text-white/60 hover:text-sky-300'
+                }`}
+              >
+                SAR Radar
+              </button>
+            </div>
+
             {/* Dual Operational Mode Switcher: Recon Mode vs Attack Mode */}
             <div className="flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1">
               <button
@@ -1534,7 +1902,7 @@ export default function AviarsBattlefieldViewer() {
                     : 'text-white/65 hover:text-white'
                 }`}
               >
-                Recon Mode (ISR)
+                Recon (ISR)
               </button>
               <button
                 type="button"
@@ -1648,7 +2016,7 @@ export default function AviarsBattlefieldViewer() {
               </div>
 
               {/* Hardware / Software Subsystem Component Badge */}
-              <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3.5">
+              <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3.5 mb-3.5">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-sky-400 font-bold mb-1">
                   ACTIVE HARDWARE / SOFTWARE COMPONENT
                 </p>
@@ -1658,6 +2026,38 @@ export default function AviarsBattlefieldViewer() {
                 <p className="text-[11px] font-mono text-white/55">
                   {primaryLockedTarget.componentSpec}
                 </p>
+              </div>
+
+              {/* Kinetic Strike Action Bar (Launch / Re-Engage Micro-Munition) */}
+              <div className="flex items-center justify-between gap-2.5 pt-1">
+                <div className="text-[10px] font-mono">
+                  {isAttack ? (
+                    strikeHud.status === 'inbound' ? (
+                      <span className="text-amber-300 font-bold animate-pulse">
+                        ● AGM-M1 MICRO-MUNITION INBOUND...
+                      </span>
+                    ) : strikeHud.status === 'impact' ? (
+                      <span className="text-red-400 font-bold">
+                        ✓ IMPACT CONFIRMED // TARGET NEUTRALIZED
+                      </span>
+                    ) : (
+                      <span className="text-red-400/85">
+                        ● VENTRAL BAY ARMED // TERMINAL SOLUTION READY
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-[#00ff41]/85">
+                      ● PASSIVE ISR TELEMETRY STREAMING
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={triggerKineticStrike}
+                  className="shrink-0 rounded-lg bg-red-500/20 hover:bg-red-500 border border-red-500/60 text-red-300 hover:text-white px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
+                >
+                  {isAttack ? 'Re-Fire Strike' : 'Engage Target'}
+                </button>
               </div>
             </div>
           </div>
@@ -1688,12 +2088,16 @@ export default function AviarsBattlefieldViewer() {
                     : primaryLockedTarget.howItWorksRecon}
                 </p>
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10 text-[10px] font-mono">
-                  <span className="text-sky-400 font-bold">
+                  <span className="text-sky-400 font-bold truncate">
                     COMPONENT: {primaryLockedTarget.componentName}
                   </span>
-                  <span className="text-white/50 hidden sm:inline">
-                    {primaryLockedTarget.componentSpec}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={triggerKineticStrike}
+                    className="rounded bg-red-500/25 hover:bg-red-500 border border-red-500/60 text-red-300 hover:text-white px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider transition-all"
+                  >
+                    {isAttack ? 'Re-Fire Strike' : 'Engage Target'}
+                  </button>
                 </div>
               </div>
             </div>

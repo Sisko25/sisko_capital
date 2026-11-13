@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import ProcurementModal from "@/components/procurement-modal"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -70,6 +71,7 @@ export default function RootLayout({
         <Header />
         <main className="pt-16 sm:pt-20 lg:pt-24">{children}</main>
         <Footer />
+        <ProcurementModal />
       </body>
     </html>
   )

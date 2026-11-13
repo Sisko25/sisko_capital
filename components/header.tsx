@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { openProcurementModal } from '@/components/procurement-modal';
 
 const navLinks = [
   { label: 'About Us', href: '/about' },
@@ -53,7 +54,7 @@ export default function Header() {
             </Link>
 
             {/* Desktop navigation */}
-            <nav className="hidden lg:flex items-center lg:gap-5 xl:gap-9">
+            <nav className="hidden lg:flex items-center lg:gap-4 xl:gap-7">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
@@ -73,6 +74,13 @@ export default function Header() {
                   </Link>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => openProcurementModal('Defense Procurement Briefing')}
+                className="ml-2 rounded-lg bg-[#00ff41]/15 hover:bg-[#00ff41] border border-[#00ff41]/50 text-[#00ff41] hover:text-black px-3.5 py-2 text-[11px] font-mono font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap"
+              >
+                Procurement
+              </button>
             </nav>
 
             {/* Mobile & Tablet hamburger button */}
@@ -157,12 +165,16 @@ export default function Header() {
                   Sovereign AI Aerial Intelligence — Singapore
                 </p>
               </div>
-              <a
-                href="mailto:sisko@duck.com?subject=Procurement%20Inquiry"
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openProcurementModal('Procurement Inquiry');
+                }}
                 className="w-full sm:w-auto text-center bg-[#00ff41] text-black px-6 py-3.5 rounded-lg text-xs font-bold uppercase tracking-widest"
               >
                 Procurement Inquiry
-              </a>
+              </button>
             </div>
           </nav>
         </div>

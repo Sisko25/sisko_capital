@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import SingaporeTacticalMap from '@/components/singapore-tactical-map'
 
 export default function SingaporePage() {
   return (
@@ -48,10 +49,8 @@ export default function SingaporePage() {
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="site-container">
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      </div>
+      {/* Interactive Singapore Strait & Airspace Chokepoint Map */}
+      <SingaporeTacticalMap />
 
       {/* 4 Pillars of Singapore Defense */}
       <section className="py-16 sm:py-24 lg:py-36 bg-[#0a0a0a]">
