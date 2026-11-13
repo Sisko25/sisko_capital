@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -575,17 +575,6 @@ export default function AviarsBattlefieldViewer() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
     };
-  }, []);
-
-  const jumpToProgress = useCallback((targetP: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const containerTopDoc = window.scrollY + rect.top;
-    const totalScrollable = rect.height - window.innerHeight;
-    window.scrollTo({
-      top: containerTopDoc + targetP * totalScrollable,
-      behavior: 'smooth',
-    });
   }, []);
 
   // Initialize Three.js WebGL Stage
@@ -1322,8 +1311,6 @@ export default function AviarsBattlefieldViewer() {
   const isPovActive = scrollProgress >= 0.16;
   const activeSector: ScenarioType =
     scrollProgress < 0.44 ? 'land' : scrollProgress < 0.72 ? 'air' : 'naval';
-  const activePhaseIndex =
-    scrollProgress < 0.16 ? 1 : scrollProgress < 0.44 ? 2 : scrollProgress < 0.72 ? 3 : 4;
 
   const isAttack = missionMode === 'attack';
   const accentColor = isAttack ? '#ef4444' : '#00ff41';
@@ -1334,46 +1321,11 @@ export default function AviarsBattlefieldViewer() {
   const primaryLockedTarget =
     projectedTargets.find((t) => t.isPrimaryLock) || projectedTargets[0] || null;
 
-  const phases = [
-    {
-      phase: 1,
-      shortTitle: 'SA-1 → POV',
-      range: '0% – 16%',
-      targetP: 0.03,
-      title: 'SA-1 Airframe → Optical POV',
-      metric: '3RD-PERSON STUDIO → 4K POV',
-    },
-    {
-      phase: 2,
-      shortTitle: 'Land Sector',
-      range: '16% – 44%',
-      targetP: 0.24,
-      title: 'Land // Urban Battlefield',
-      metric: 'SAM LAUNCHER & MBT CONVOY',
-    },
-    {
-      phase: 3,
-      shortTitle: 'Air Sector',
-      range: '44% – 72%',
-      targetP: 0.52,
-      title: 'Air // Counter-UAS Intercept',
-      metric: 'STEALTH UCAV & EW AIRCRAFT',
-    },
-    {
-      phase: 4,
-      shortTitle: 'Naval Sector',
-      range: '72% – 100%',
-      targetP: 0.80,
-      title: 'Naval // Singapore Strait',
-      metric: 'DARK SHIP & FAST ATTACK CRAFT',
-    },
-  ];
-
   const clampedTargetX = primaryLockedTarget
     ? Math.max(75, Math.min(viewportSize.width - 75, primaryLockedTarget.screenX))
     : viewportSize.width * 0.5;
   const clampedTargetY = primaryLockedTarget
-    ? Math.max(125, Math.min(viewportSize.height - 235, primaryLockedTarget.screenY))
+    ? Math.max(125, Math.min(viewportSize.height - 165, primaryLockedTarget.screenY))
     : viewportSize.height * 0.44;
 
   return (
@@ -1600,10 +1552,10 @@ export default function AviarsBattlefieldViewer() {
         </div>
 
         {/* =====================================================================
-            PHASE 1 PROMPT OVERLAY (Positioned cleanly above bottom dock)
+            PHASE 1 PROMPT OVERLAY
            ===================================================================== */}
         {!isPovActive && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-24 sm:bottom-28 z-25 flex justify-center px-4">
+          <div className="pointer-events-none absolute inset-x-0 bottom-6 sm:bottom-10 z-25 flex justify-center px-4">
             <div className="bg-black/80 backdrop-blur-xl border border-sky-400/40 rounded-2xl px-5 py-3 sm:px-7 sm:py-3.5 text-center max-w-xl shadow-2xl">
               <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.22em] text-sky-400 font-bold mb-1">
                 SA-1 &ldquo;VANGUARD&rdquo; // CONTINUOUS LAND → AIR → NAVAL MISSION
@@ -1712,14 +1664,13 @@ export default function AviarsBattlefieldViewer() {
         )}
 
         {/* =====================================================================
-            BOTTOM DOCK — Mobile Target Lock Explainer Card (< lg) + 4-Phase Stepper
+            BOTTOM DOCK — Mobile Target Lock Explainer Card (< lg)
            ===================================================================== */}
-        <div className="pointer-events-auto absolute z-30 bottom-3 sm:bottom-5 lg:bottom-6 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10">
-          <div className="max-w-6xl mx-auto space-y-2.5">
-            {/* Mobile & Tablet Active Target Lock Explainer Card (< lg) */}
-            {isPovActive && primaryLockedTarget && (
+        {isPovActive && primaryLockedTarget && (
+          <div className="pointer-events-auto lg:hidden absolute z-30 bottom-3 sm:bottom-5 left-3 right-3 sm:left-6 sm:right-6">
+            <div className="max-w-6xl mx-auto">
               <div
-                className={`lg:hidden bg-black/90 backdrop-blur-xl border ${accentBorderClass} rounded-xl p-3.5 sm:p-4 shadow-2xl`}
+                className={`bg-black/90 backdrop-blur-xl border ${accentBorderClass} rounded-xl p-3.5 sm:p-4 shadow-2xl`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span
@@ -1745,52 +1696,9 @@ export default function AviarsBattlefieldViewer() {
                   </span>
                 </div>
               </div>
-            )}
-
-            {/* 4-Phase Continuous Scroll Stepper Bar (SA-1 -> Land -> Air -> Naval) */}
-            <div className="bg-black/85 backdrop-blur-xl border border-white/15 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 shadow-2xl">
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
-                {phases.map((ph) => {
-                  const isCurrent = activePhaseIndex === ph.phase;
-                  return (
-                    <button
-                      key={ph.phase}
-                      type="button"
-                      onClick={() => jumpToProgress(ph.targetP)}
-                      className={`text-left rounded-lg sm:rounded-xl p-2 sm:p-3 border transition-all ${
-                        isCurrent
-                          ? `${accentBgClass} ${accentBorderClass}`
-                          : 'bg-white/[0.02] border-white/10 hover:border-white/25'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-mono uppercase tracking-wider mb-0.5">
-                        <span className={isCurrent ? `${accentTextClass} font-bold` : 'text-white/50'}>
-                          <span className="sm:hidden">0{ph.phase}</span>
-                          <span className="hidden sm:inline">
-                            Phase 0{ph.phase} ({ph.range})
-                          </span>
-                        </span>
-                        {isCurrent && (
-                          <span
-                            className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: accentColor }}
-                          />
-                        )}
-                      </div>
-                      <p className="text-[11px] sm:text-xs font-bold text-white truncate">
-                        <span className="sm:hidden">{ph.shortTitle}</span>
-                        <span className="hidden sm:inline">{ph.title}</span>
-                      </p>
-                      <p className="hidden md:block text-[10px] font-mono text-white/50 truncate mt-0.5">
-                        {ph.metric}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
