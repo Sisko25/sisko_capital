@@ -1,535 +1,1601 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
 
-interface ChokepointSector {
+type CameraViewMode = 'tactical' | 'island';
+type DefensePosture = 'intercept' | 'overwatch';
+
+interface MilitaryBaseSpec {
   id: string;
   code: string;
   name: string;
-  coords: string;
-  domain: 'MARITIME OVERWATCH' | 'INFRASTRUCTURE C-UAS' | 'URBAN EW RESILIENCE' | 'EASTERN AIR-SEA GATE';
-  mapX: number;
-  mapY: number;
-  radarRadius: number;
-  threatTitle: string;
-  threatTelemetry: string;
-  aviarsSolution: string;
-  subsystemUsed: string;
-  metrics: { label: string; value: string }[];
+  role: string;
+  lon: number;
+  lat: number;
+  type: 'coastal-hive' | 'airbase-camp';
 }
 
-const SINGAPORE_SECTORS: ChokepointSector[] = [
+interface InterceptMissionSpec {
+  id: string;
+  code: string;
+  sectorTitle: string;
+  scrollRange: [number, number];
+  primaryBaseId: string;
+  secondaryBaseId: string;
+  targetName: string;
+  targetType: 'maritime-usv' | 'air-swarm' | 'ew-vessel' | 'fast-attack';
+  targetLon: number;
+  targetLat: number;
+  targetAltY: number;
+  threatTelemetry: string;
+  scrambleSummary: string;
+  takedownMechanics: string;
+  subsystemBadge: string;
+  interceptTimeSec: string;
+  distanceKm: string;
+   cameraOffset: [number, number, number];
+}
+
+interface ProjectedBaseHud extends MilitaryBaseSpec {
+  x: number;
+  y: number;
+  inFront: boolean;
+  isScrambling: boolean;
+}
+
+interface ProjectedTargetHud {
+  x: number;
+  y: number;
+  inFront: boolean;
+  droneX: number;
+  droneY: number;
+  droneInFront: boolean;
+  phase: 'scrambling' | 'locking' | 'impact';
+  progress: number;
+}
+
+// Convert real Singapore Longitude / Latitude into 3D Scene (X, Z) coordinates
+// Center: 103.825° E, 1.345° N
+function lonLatToXZ(lon: number, lat: number): [number, number] {
+  const x = (lon - 103.825) * 1150;
+  const z = -(lat - 1.345) * 1150;
+  return [x, z];
+}
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = clamp01((x - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
+}
+
+// ============================================================================
+// REAL GEOGRAPHIC COASTLINE COORDINATES FOR SINGAPORE & SURROUNDING ISLANDS
+// ============================================================================
+const SG_MAIN_ISLAND_LON_LAT: [number, number][] = [
+  // Tuas South Finger Piers (SW Tip)
+  [103.605, 1.242],
+  [103.618, 1.238],
+  [103.628, 1.245],
+  [103.622, 1.268],
+  [103.635, 1.275],
+  [103.625, 1.298],
+  // Tuas West Coast & Raffles Marina
+  [103.632, 1.325],
+  [103.636, 1.348],
+  // Tengah / Western Catchment Coast
+  [103.652, 1.375],
+  [103.668, 1.402],
+  [103.688, 1.425],
+  // Lim Chu Kang & Kranji (NW)
+  [103.708, 1.442],
+  [103.732, 1.448],
+  [103.755, 1.446],
+  // Woodlands & Causeway (North)
+  [103.772, 1.454],
+  [103.798, 1.458],
+  // Sembawang Naval Base & Senoko (North Tip)
+  [103.822, 1.468],
+  [103.845, 1.462],
+  // Yishun / Seletar / Punggol (NE)
+  [103.868, 1.438],
+  [103.888, 1.425],
+  [103.912, 1.418],
+  [103.932, 1.402],
+  // Pasir Ris & Loyang
+  [103.958, 1.388],
+  [103.982, 1.392],
+  // Changi North & Changi Airport Peninsula (East)
+  [104.005, 1.394],
+  [104.028, 1.375],
+  [104.042, 1.348],
+  [104.035, 1.318],
+  [104.008, 1.314],
+  // Tanah Merah & East Coast Parkway (SE)
+  [103.972, 1.312],
+  [103.935, 1.304],
+  [103.902, 1.296],
+  // Marina East & Marina Barrage / Marina Bay
+  [103.878, 1.282],
+  [103.862, 1.276],
+  [103.852, 1.279],
+  // Tanjong Pagar & Keppel Terminal / HarbourFront
+  [103.838, 1.264],
+  [103.816, 1.265],
+  // Pasir Panjang Terminal & West Coast
+  [103.788, 1.274],
+  [103.762, 1.288],
+  [103.738, 1.302],
+  // Jurong Port & Pioneer
+  [103.708, 1.304],
+  [103.678, 1.302],
+  [103.652, 1.298],
+  [103.638, 1.285],
+];
+
+const JURONG_ISLAND_LON_LAT: [number, number][] = [
+  [103.662, 1.258],
+  [103.688, 1.248],
+  [103.722, 1.262],
+  [103.726, 1.284],
+  [103.696, 1.288],
+  [103.668, 1.276],
+];
+
+const SENTOSA_ISLAND_LON_LAT: [number, number][] = [
+  [103.808, 1.254],
+  [103.828, 1.241],
+  [103.848, 1.244],
+  [103.842, 1.257],
+  [103.818, 1.259],
+];
+
+const PULAU_TEKONG_LON_LAT: [number, number][] = [
+  [104.018, 1.405],
+  [104.042, 1.388],
+  [104.076, 1.396],
+  [104.072, 1.426],
+  [104.035, 1.432],
+];
+
+const PULAU_UBIN_LON_LAT: [number, number][] = [
+  [103.952, 1.412],
+  [103.978, 1.404],
+  [103.998, 1.410],
+  [103.992, 1.422],
+  [103.962, 1.421],
+];
+
+const SOUTHERN_ISLANDS_LON_LAT: [number, number][][] = [
+  // Pulau Bukom
+  [
+    [103.758, 1.232],
+    [103.776, 1.226],
+    [103.778, 1.238],
+    [103.762, 1.241],
+  ],
+  // Pulau Semakau
+  [
+    [103.752, 1.198],
+    [103.772, 1.195],
+    [103.775, 1.214],
+    [103.756, 1.216],
+  ],
+  // St John's & Lazarus
+  [
+    [103.845, 1.218],
+    [103.862, 1.215],
+    [103.864, 1.228],
+    [103.848, 1.229],
+  ],
+];
+
+// ============================================================================
+// 7 STRATEGIC SA-1 COASTAL DRONE HIVES & SAF MILITARY CAMPS / AIRBASES
+// ============================================================================
+const SINGAPORE_BASES: MilitaryBaseSpec[] = [
   {
-    id: 'tuas-strait',
-    code: 'SG-01 // WEST',
-    name: 'Tuas Mega Port & Western Strait Funnel',
-    coords: '01°15\'54"N 103°37\'15"E',
-    domain: 'MARITIME OVERWATCH',
-    mapX: 165,
-    mapY: 315,
-    radarRadius: 95,
-    threatTitle: 'Dark-Ship AIS Transponder Spoofing (Offset: 1.8 NM)',
-    threatTelemetry: 'SAR KELVIN-WAKE ANOMALY // THERMAL HULL SIGNATURE MISMATCH',
-    aviarsSolution:
-      'Automatically cross-checks AIS broadcast coordinates against 120 FPS Synthetic Aperture Radar (SAR) wake geometry and thermal IR hull profiles, flagging ghost vessels and unauthorized course deviations before they enter port approaches.',
-    subsystemUsed: '120 FPS SAR + LWIR Thermal Sensor Fusion',
-    metrics: [
-      { label: 'Annual Vessels Monitored', value: '130,000+' },
-      { label: 'AIS Spoof Detection', value: '< 4.2 ms' },
-      { label: 'Strait Overwatch', value: '24/7 All-Weather' },
-    ],
+    id: 'tuas-naval',
+    code: 'HIVE-01 // TUAS NAVAL',
+    name: 'Tuas Naval Base & Finger Pier Drone Hive',
+    role: 'Western Strait & Malacca Funnel Overwatch',
+    lon: 103.622,
+    lat: 1.268,
+    type: 'coastal-hive',
   },
   {
-    id: 'jurong-island',
-    code: 'SG-02 // SOUTH-WEST',
-    name: 'Jurong Island Energy & Refinery Complex',
-    coords: '01°15\'58"N 103°41\'56"E',
-    domain: 'INFRASTRUCTURE C-UAS',
-    mapX: 295,
-    mapY: 335,
-    radarRadius: 85,
-    threatTitle: 'Ultra-Low Altitude Hostile Micro-Drone Swarm in Monsoon Rain',
-    threatTelemetry: 'RCS: 0.002 m² // MICRO-DOPPLER ROTOR WAKE LOCKED',
-    aviarsSolution:
-      'Penetrates heavy tropical monsoonal downpours and sea haze by combining micro-Doppler blade-flash detection with the 3× gold-dichroic quartz solid-state LiDAR array to track and interdict miniature drones hugging the waterline.',
-    subsystemUsed: 'Forward 4K Sapphire Gimbal + 3× Quartz LiDAR Ring',
-    metrics: [
-      { label: 'Early Warning Range', value: '15.0 km' },
-      { label: 'Simultaneous Tracks', value: 'Up to 64 Targets' },
-      { label: 'Rain/Haze Clarity', value: '100% Zero-Blindspot' },
-    ],
+    id: 'jurong-battery',
+    code: 'HIVE-02 // JURONG COAST',
+    name: 'Jurong Island Coastal Defense Battery',
+    role: 'Petrochemical Complex & Southern Channel Shield',
+    lon: 103.695,
+    lat: 1.265,
+    type: 'coastal-hive',
   },
   {
-    id: 'marina-urban',
-    code: 'SG-03 // CENTRAL',
-    name: 'Marina Bay & Southern Strait Urban Corridor',
-    coords: '01°16\'58"N 103°51\'36"E',
-    domain: 'URBAN EW RESILIENCE',
-    mapX: 525,
-    mapY: 305,
-    radarRadius: 80,
-    threatTitle: 'GPS-Denied Urban Canyon & Active RF Jamming Interference',
-    threatTelemetry: 'GNSS SPOOFING REJECTED // VIO + AES-256 FHSS LINK ACTIVE',
-    aviarsSolution:
-      'Maintains pinpoint autonomous flight and target tracking between high-rise towers without satellite dependency using Dual 3.0 mm Stereo Visual Inertial Odometry (VIO), while serrated toroidal ducts keep acoustic signature whispers-quiet.',
-    subsystemUsed: 'Dual Stereo VIO + Flush Serrated Acoustic Nacelles',
-    metrics: [
-      { label: 'Navigation Drift', value: '< 0.05% (GPS-Denied)' },
-      { label: 'Encryption Standard', value: 'Quantum-Safe AES-256' },
-      { label: 'Acoustic Footprint', value: 'Near-Silent Urban' },
-    ],
+    id: 'tengah-airbase',
+    code: 'CAMP-03 // TENGAH AB',
+    name: 'Tengah Air Base & Lim Chu Kang Camp',
+    role: 'High-Readiness Autonomous Interceptor Wing',
+    lon: 103.708,
+    lat: 1.388,
+    type: 'airbase-camp',
   },
   {
-    id: 'changi-east',
-    code: 'SG-04 // EAST',
-    name: 'Changi Air Corridor & Eastern Singapore Strait',
-    coords: '01°20\'02"N 104°01\'05"E',
-    domain: 'EASTERN AIR-SEA GATE',
-    mapX: 735,
-    mapY: 235,
-    radarRadius: 95,
-    threatTitle: 'High-Speed Littoral Fast Attack Craft (46 Kts) & Air Intruder',
-    threatTelemetry: 'AIR-GAPPED EDGE TPU // < 5 MS TERMINAL INTERCEPT SOLUTION',
-    aviarsSolution:
-      'Executes real-time multi-domain threat prioritization 100% onboard the SA-1 aircraft via custom neuromorphic TPUs. Zero external cloud dependency guarantees sovereign data security and sub-5ms reaction speeds.',
-    subsystemUsed: 'A.V.I.A.R.S. Neuromorphic TPU + Modular Ventral Hardpoint',
-    metrics: [
-      { label: 'Onboard AI Latency', value: '< 5 ms (18W TPU)' },
-      { label: 'Cloud Leak Risk', value: '0% (100% Air-Gapped)' },
-      { label: 'Payload Drag Penalty', value: '0% (Internal Flush Bay)' },
-    ],
+    id: 'sembawang-camp',
+    code: 'HIVE-04 // SEMBAWANG',
+    name: 'Sembawang Naval & Northern Coastal Hive',
+    role: 'Johor Strait Northern Perimeter Overwatch',
+    lon: 103.826,
+    lat: 1.458,
+    type: 'coastal-hive',
+  },
+  {
+    id: 'sentosa-marina',
+    code: 'HIVE-05 // MARINA SOUTH',
+    name: 'Marina Barrage & Sentosa Coastal Hive',
+    role: 'Central Strait & CBD Urban Electronic Shield',
+    lon: 103.852,
+    lat: 1.262,
+    type: 'coastal-hive',
+  },
+  {
+    id: 'paya-lebar',
+    code: 'CAMP-06 // PAYA LEBAR AB',
+    name: 'Paya Lebar Command & Rapid Scramble Camp',
+    role: 'Central Island Multi-Domain AI Command Core',
+    lon: 103.906,
+    lat: 1.358,
+    type: 'airbase-camp',
+  },
+  {
+    id: 'changi-naval',
+    code: 'HIVE-07 // CHANGI EAST',
+    name: 'Changi Naval Base & Eastern Coastal Hive',
+    role: 'Eastern Singapore Strait & Air Corridor Gate',
+    lon: 104.026,
+    lat: 1.326,
+    type: 'coastal-hive',
   },
 ];
 
-export default function SingaporeTacticalMap() {
-  const [selectedId, setSelectedId] = useState<string>(SINGAPORE_SECTORS[0].id);
-  const [interceptSimulated, setInterceptSimulated] = useState<boolean>(false);
+// ============================================================================
+// 4 SEQUENTIAL SCROLL-DRIVEN SCRAMBLE & TARGET TAKEDOWN MISSIONS
+// ============================================================================
+const INTERCEPT_MISSIONS: InterceptMissionSpec[] = [
+  {
+    id: 'west-dark-ship',
+    code: 'INTERCEPT 01 // WESTERN APPROACH',
+    sectorTitle: 'Tuas Mega Port & Western Strait Funnel',
+    scrollRange: [0.16, 0.37],
+    primaryBaseId: 'tuas-naval',
+    secondaryBaseId: 'jurong-battery',
+    targetName: 'AIS-Spoofing Dark Ship & Explosive USV Swarm',
+    targetType: 'maritime-usv',
+    targetLon: 103.565,
+    targetLat: 1.205,
+    targetAltY: 1.5,
+    threatTelemetry: 'AIS TRANSPONDER MISMATCH (1.8 NM) // 3× HOSTILE USVs DETECTED',
+    scrambleSummary:
+      'SA-1 interceptors launch simultaneously from Tuas Naval Base (HIVE-01) and Jurong Island Battery (HIVE-02), flying a pincer trajectory 8.4 km into the Western Singapore Strait.',
+    takedownMechanics:
+      'A.V.I.A.R.S. cross-correlates 120 FPS SAR Kelvin-wake geometry with LWIR thermal signatures to isolate the explosive USVs and deploys ventral micro-munitions before port entry.',
+    subsystemBadge: 'Tuas Coastal Hive → 120 FPS SAR/LWIR Lock → Ventral Kinetic Takedown',
+    interceptTimeSec: '38.4 SEC',
+    distanceKm: '8.4 KM OFFSHORE',
+    cameraOffset: [-215, 135, 225],
+  },
+  {
+    id: 'jurong-swarm',
+    code: 'INTERCEPT 02 // INFRASTRUCTURE C-UAS',
+    sectorTitle: 'Jurong Island & Southern Anchorage Airspace',
+    scrollRange: [0.37, 0.58],
+    primaryBaseId: 'tengah-airbase',
+    secondaryBaseId: 'jurong-battery',
+    targetName: 'Low-Altitude Hostile Micro-Drone Swarm (RCS 0.002m²)',
+    targetType: 'air-swarm',
+    targetLon: 103.685,
+    targetLat: 1.195,
+    targetAltY: 26.0,
+    threatTelemetry: 'MONSOON RAIN PENETRATED // 18× MICRO-DOPPLER ROTOR LOCKS',
+    scrambleSummary:
+      'High-speed SA-1 flight scrambles south from Tengah Air Base Camp (CAMP-03) while Jurong Coastal Hive (HIVE-02) elevates into a vertical counter-UAS intercept curtain.',
+    takedownMechanics:
+      '3× gold-dichroic quartz solid-state LiDAR windows + micro-Doppler radar track every hostile rotor through zero-visibility tropical downpours for rapid mid-air interdiction.',
+    subsystemBadge: 'Tengah Air Base Scramble → 3× Quartz LiDAR Ring → Mid-Air Swarm Takedown',
+    interceptTimeSec: '24.1 SEC',
+    distanceKm: '6.2 KM SOUTH',
+    cameraOffset: [-110, 145, 235],
+  },
+  {
+    id: 'marina-ew',
+    code: 'INTERCEPT 03 // CENTRAL STRAIT & CBD',
+    sectorTitle: 'Marina Bay Urban Corridor & Southern Strait',
+    scrollRange: [0.58, 0.79],
+    primaryBaseId: 'sentosa-marina',
+    secondaryBaseId: 'paya-lebar',
+    targetName: 'Offshore EW Jamming Vessel & GNSS Spoofing Relay',
+    targetType: 'ew-vessel',
+    targetLon: 103.868,
+    targetLat: 1.198,
+    targetAltY: 2.0,
+    threatTelemetry: 'GPS SPOOFING REJECTED // HOME-ON-JAM TRIANGULATION LOCKED',
+    scrambleSummary:
+      'SA-1 units launch from Marina/Sentosa Coastal Hive (HIVE-05) and Paya Lebar Air Base (CAMP-06), navigating GPS-denied urban canyons via Dual 3.0 mm Stereo Visual Inertial Odometry.',
+    takedownMechanics:
+      'Quantum-resistant AES-256 FHSS telemetry defeats hostile RF jamming while passive Home-On-Jam triangulation guides the SA-1 directly onto the vessel’s primary jamming mast.',
+    subsystemBadge: 'Marina Hive + Paya Lebar Camp → Stereo VIO + Home-On-Jam Strike',
+    interceptTimeSec: '29.8 SEC',
+    distanceKm: '7.1 KM STRAIT',
+    cameraOffset: [45, 138, 230],
+  },
+  {
+    id: 'changi-fac',
+    code: 'INTERCEPT 04 // EASTERN STRAIT GATE',
+    sectorTitle: 'Changi Naval Base & Eastern Strait Corridor',
+    scrollRange: [0.79, 1.01],
+    primaryBaseId: 'changi-naval',
+    secondaryBaseId: 'paya-lebar',
+    targetName: '46-Knot Hostile Littoral Fast Attack Craft',
+    targetType: 'fast-attack',
+    targetLon: 104.065,
+    targetLat: 1.245,
+    targetAltY: 1.5,
+    threatTelemetry: 'ONBOARD EDGE TPU LOCK [< 4.2 MS] // TERMINAL INTERCEPT ARMED',
+    scrambleSummary:
+      'SA-1 interceptors launch from Changi Eastern Coastal Hive (HIVE-07) and Paya Lebar Camp (CAMP-06), streaking down the Eastern Singapore Strait approach at maximum dash speed.',
+    takedownMechanics:
+      '100% air-gapped onboard neuromorphic TPU computes wave-crest lead compensation in under 5 milliseconds, neutralizing the fast attack craft before it breaches territorial waters.',
+    subsystemBadge: 'Changi Naval Hive → < 5 ms Neuromorphic TPU → Terminal Strike',
+    interceptTimeSec: '31.2 SEC',
+    distanceKm: '9.0 KM EAST',
+    cameraOffset: [215, 140, 220],
+  },
+];
 
-  const activeSector =
-    SINGAPORE_SECTORS.find((s) => s.id === selectedId) || SINGAPORE_SECTORS[0];
+// Helper to create an extruded 3D landmass mesh + glowing shoreline outline from [lon, lat] polygon
+function createExtrudedIsland(
+  coords: [number, number][],
+  height: number,
+  topMat: THREE.Material,
+  sideMat: THREE.Material,
+  shoreColorHex: number
+): THREE.Group {
+  const group = new THREE.Group();
+  const shape = new THREE.Shape();
 
-  const handleSelectSector = (id: string) => {
-    setSelectedId(id);
-    setInterceptSimulated(false);
+  coords.forEach(([lon, lat], idx) => {
+    const [x, z] = lonLatToXZ(lon, lat);
+    // In THREE.Shape (XY plane), we map X -> x and Y -> -z so when rotated -PI/2 around X, Y becomes +Z
+    if (idx === 0) {
+      shape.moveTo(x, -z);
+    } else {
+      shape.lineTo(x, -z);
+    }
+  });
+  shape.closePath();
+
+  const extrudeGeom = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: true,
+    bevelSegments: 2,
+    steps: 1,
+    bevelSize: 0.8,
+    bevelThickness: 0.8,
+  });
+  extrudeGeom.rotateX(-Math.PI / 2);
+
+  const mesh = new THREE.Mesh(extrudeGeom, [topMat, sideMat]);
+  group.add(mesh);
+
+  // Glowing precision coastline perimeter line at top surface
+  const pts3D: THREE.Vector3[] = coords.map(([lon, lat]) => {
+    const [x, z] = lonLatToXZ(lon, lat);
+    return new THREE.Vector3(x, height + 0.9, z);
+  });
+  pts3D.push(pts3D[0].clone());
+
+  const lineGeom = new THREE.BufferGeometry().setFromPoints(pts3D);
+  const lineMat = new THREE.LineBasicMaterial({
+    color: shoreColorHex,
+    transparent: true,
+    opacity: 0.85,
+  });
+  group.add(new THREE.Line(lineGeom, lineMat));
+
+  return group;
+}
+
+// Build a mini 3D SA-1 "Vanguard" quad-ducted stealth drone mesh for the trajectory animation
+function buildMiniSa1DroneMesh(): THREE.Group {
+  const g = new THREE.Group();
+  const hullMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x00ff41 });
+  const lensMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+  // Blended quad-ducted fuselage
+  const body = new THREE.Mesh(new THREE.BoxGeometry(5.5, 1.4, 6.2), hullMat);
+  g.add(body);
+
+  // Forward blue 4K optical sphere
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 12), lensMat);
+  nose.position.set(0, 0, 3.2);
+  g.add(nose);
+
+  // 4 glowing rotor rings
+  const ringCoords: [number, number][] = [
+    [-2.2, 2.0],
+    [2.2, 2.0],
+    [-2.2, -2.0],
+    [2.2, -2.0],
+  ];
+  ringCoords.forEach(([rx, rz]) => {
+    const r = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.35, 16), glowMat);
+    r.rotation.x = -Math.PI / 2;
+    r.position.set(rx, 0.8, rz);
+    g.add(r);
+  });
+
+  return g;
+}
+
+// Build 3D Hostile Target Mesh in the Singapore Strait / Airspace
+function buildHostileTarget3D(type: InterceptMissionSpec['targetType']): THREE.Group {
+  const g = new THREE.Group();
+  const hullMat = new THREE.MeshPhysicalMaterial({
+    color: 0x334155,
+    metalness: 0.6,
+    roughness: 0.35,
+  });
+  const hotMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+  const edgeMat = new THREE.LineBasicMaterial({
+    color: 0xef4444,
+    transparent: true,
+    opacity: 0.85,
+  });
+
+  const addPart = (geom: THREE.BufferGeometry, mat: THREE.Material, pos: [number, number, number]) => {
+    const m = new THREE.Mesh(geom, mat);
+    m.position.set(pos[0], pos[1], pos[2]);
+    g.add(m);
+    const e = new THREE.EdgesGeometry(geom);
+    m.add(new THREE.LineSegments(e, edgeMat));
   };
 
+  if (type === 'maritime-usv' || type === 'ew-vessel') {
+    // Stealth Corvette / Dark Ship + 2 USV Escorts
+    addPart(new THREE.BoxGeometry(7, 3.5, 22), hullMat, [0, 1.8, 0]);
+    addPart(new THREE.BoxGeometry(5, 4.2, 8), hullMat, [0, 4.8, 2]);
+    addPart(new THREE.CylinderGeometry(0.8, 1.2, 5, 8), hotMat, [0, 8.5, 2]);
+    // Escort USVs
+    addPart(new THREE.BoxGeometry(2.6, 1.4, 7), hotMat, [-9, 1.0, 5]);
+    addPart(new THREE.BoxGeometry(2.6, 1.4, 7), hotMat, [9, 1.0, -4]);
+  } else if (type === 'air-swarm') {
+    // Swept-Wing Hostile UCAV + 3 Swarm Drones
+    addPart(new THREE.BoxGeometry(14, 1.2, 6), hullMat, [0, 0, 0]);
+    addPart(new THREE.SphereGeometry(1.6, 10, 10), hotMat, [0, 0.5, -3]);
+    addPart(new THREE.BoxGeometry(5, 0.8, 4), hotMat, [-10, 2.5, -5]);
+    addPart(new THREE.BoxGeometry(5, 0.8, 4), hotMat, [10, -2.0, -4]);
+    addPart(new THREE.BoxGeometry(5, 0.8, 4), hotMat, [0, 4.0, -9]);
+  } else {
+    // High-Speed Littoral Fast Attack Craft
+    addPart(new THREE.BoxGeometry(5.5, 2.8, 17), hullMat, [0, 1.4, 0]);
+    addPart(new THREE.BoxGeometry(4.2, 2.5, 6), hullMat, [0, 3.8, 2]);
+    addPart(new THREE.BoxGeometry(3.6, 2.2, 5), hotMat, [0, 3.6, -5]);
+  }
+
+  // Pulsing Red Target Ring on Water/Air Plane
+  const ringG = new THREE.RingGeometry(13, 14.5, 32);
+  ringG.rotateX(-Math.PI / 2);
+  const ringM = new THREE.Mesh(
+    ringG,
+    new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.75,
+    })
+  );
+  ringM.position.y = 0.4;
+  g.add(ringM);
+
+  return g;
+}
+
+export default function SingaporeTacticalMap() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [cameraMode, setCameraMode] = useState<CameraViewMode>('tactical');
+  const [posture, setPosture] = useState<DefensePosture>('intercept');
+  const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 });
+  const [projectedBases, setProjectedBases] = useState<ProjectedBaseHud[]>([]);
+  const [targetHud, setTargetHud] = useState<ProjectedTargetHud>({
+    x: 640,
+    y: 400,
+    inFront: false,
+    droneX: 640,
+    droneY: 400,
+    droneInFront: false,
+    phase: 'scrambling',
+    progress: 0,
+  });
+
+  const progressRef = useRef(0);
+  const smoothedProgressRef = useRef(0);
+  const cameraModeRef = useRef<CameraViewMode>('tactical');
+  const postureRef = useRef<DefensePosture>('intercept');
+  const scrambleResetClockRef = useRef<number>(-1);
+  const lastMissionIdxRef = useRef<number>(-1);
+
+  useEffect(() => {
+    progressRef.current = scrollProgress;
+  }, [scrollProgress]);
+
+  useEffect(() => {
+    cameraModeRef.current = cameraMode;
+  }, [cameraMode]);
+
+  useEffect(() => {
+    postureRef.current = posture;
+  }, [posture]);
+
+  const triggerManualReScramble = () => {
+    setPosture('intercept');
+    postureRef.current = 'intercept';
+    scrambleResetClockRef.current = -2;
+  };
+
+  const jumpToScrollProgress = (targetP: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const docTop = window.scrollY + rect.top;
+    const scrollable = rect.height - window.innerHeight;
+    window.scrollTo({
+      top: docTop + targetP * scrollable,
+      behavior: 'smooth',
+    });
+  };
+
+  // Track Window Scroll Progress (0.0 -> 1.0)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const totalScrollable = rect.height - window.innerHeight;
+      if (totalScrollable <= 0) return;
+      setScrollProgress(clamp01(-rect.top / totalScrollable));
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
+  // Initialize Three.js 3D Singapore Sovereign Defense Theater
+  useEffect(() => {
+    const wrapper = canvasWrapperRef.current;
+    if (!wrapper) return;
+
+    const width = wrapper.clientWidth || 1280;
+    const height = wrapper.clientHeight || 800;
+    setViewportSize({ width, height });
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#060A11');
+    scene.fog = new THREE.FogExp2('#060A11', 0.0011);
+
+    const camera = new THREE.PerspectiveCamera(38, width / height, 1, 2400);
+    camera.position.set(0, 320, 390);
+    camera.lookAt(0, 0, 15);
+
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+    } catch {
+      return;
+    }
+
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.3;
+    renderer.domElement.style.touchAction = 'pan-y';
+
+    wrapper.innerHTML = '';
+    wrapper.appendChild(renderer.domElement);
+
+    // Lighting
+    scene.add(new THREE.HemisphereLight(0xdbeafe, 0x060a11, 1.35));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    dirLight.position.set(180, 380, 260);
+    scene.add(dirLight);
+    const rimLight = new THREE.DirectionalLight(0x00ff41, 1.2);
+    rimLight.position.set(-220, 180, -200);
+    scene.add(rimLight);
+
+    // =========================================================================
+    // 1. SINGAPORE STRAIT OCEAN SURFACE & SHIPPING LANE TSS GRID
+    // =========================================================================
+    const seaGrid = new THREE.GridHelper(1100, 55, 0x0ea5e9, 0x0d1b2a);
+    seaGrid.position.y = -0.5;
+    (seaGrid.material as THREE.Material).transparent = true;
+    (seaGrid.material as THREE.Material).opacity = 0.35;
+    scene.add(seaGrid);
+
+    const seaGeom = new THREE.PlaneGeometry(1100, 750, 48, 36);
+    seaGeom.rotateX(-Math.PI / 2);
+    const seaMat = new THREE.MeshBasicMaterial({
+      color: 0x0284c7,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.14,
+    });
+    const seaMesh = new THREE.Mesh(seaGeom, seaMat);
+    seaMesh.position.y = -0.8;
+    scene.add(seaMesh);
+
+    // Singapore Strait Traffic Separation Scheme (TSS) Shipping Corridor Lines
+    const tssWaypoints: [number, number][] = [
+      [103.52, 1.18],
+      [103.65, 1.20],
+      [103.78, 1.21],
+      [103.90, 1.23],
+      [104.08, 1.27],
+    ];
+    const tssPts1 = tssWaypoints.map(([lon, lat]) => {
+      const [x, z] = lonLatToXZ(lon, lat);
+      return new THREE.Vector3(x, 0.2, z);
+    });
+    const tssPts2 = tssWaypoints.map(([lon, lat]) => {
+      const [x, z] = lonLatToXZ(lon, lat - 0.018);
+      return new THREE.Vector3(x, 0.2, z);
+    });
+    const tssLineMat = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.35,
+    });
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tssPts1), tssLineMat));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tssPts2), tssLineMat));
+
+    // =========================================================================
+    // 2. HIGH-PRECISION 3D EXTRUDED SINGAPORE LANDMASS & OFFSHORE ISLANDS
+    // =========================================================================
+    const sgTopMat = new THREE.MeshPhysicalMaterial({
+      color: 0x111e30,
+      roughness: 0.55,
+      metalness: 0.35,
+      clearcoat: 0.3,
+    });
+    const sgSideMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a192f,
+      emissive: 0x00ff41,
+      emissiveIntensity: 0.14,
+      roughness: 0.4,
+    });
+    const islandTopMat = new THREE.MeshPhysicalMaterial({
+      color: 0x15253b,
+      roughness: 0.5,
+      metalness: 0.4,
+    });
+    const neighborMat = new THREE.MeshBasicMaterial({
+      color: 0x09101a,
+      transparent: true,
+      opacity: 0.75,
+    });
+
+    // Main Singapore Island (Extruded to height 6.0)
+    const mainIslandGroup = createExtrudedIsland(
+      SG_MAIN_ISLAND_LON_LAT,
+      6.0,
+      sgTopMat,
+      sgSideMat,
+      0x00ff41
+    );
+    scene.add(mainIslandGroup);
+
+    // Jurong Island, Sentosa, Pulau Tekong, Pulau Ubin & Southern Islands
+    scene.add(createExtrudedIsland(JURONG_ISLAND_LON_LAT, 4.5, islandTopMat, sgSideMat, 0x38bdf8));
+    scene.add(createExtrudedIsland(SENTOSA_ISLAND_LON_LAT, 4.5, islandTopMat, sgSideMat, 0x38bdf8));
+    scene.add(createExtrudedIsland(PULAU_TEKONG_LON_LAT, 5.0, islandTopMat, sgSideMat, 0x00ff41));
+    scene.add(createExtrudedIsland(PULAU_UBIN_LON_LAT, 4.2, islandTopMat, sgSideMat, 0x38bdf8));
+    SOUTHERN_ISLANDS_LON_LAT.forEach((poly) => {
+      scene.add(createExtrudedIsland(poly, 3.5, islandTopMat, sgSideMat, 0x38bdf8));
+    });
+
+    // Northern Johor Coastline Context Silhouette
+    const johorCoords: [number, number][] = [
+      [103.52, 1.42],
+      [103.65, 1.43],
+      [103.75, 1.468],
+      [103.85, 1.482],
+      [103.96, 1.445],
+      [104.12, 1.38],
+      [104.12, 1.56],
+      [103.52, 1.56],
+    ];
+    scene.add(createExtrudedIsland(johorCoords, 3.0, neighborMat, neighborMat, 0x1e293b));
+
+    // 3D Urban Skyline Massing Blocks (Marina Bay CBD, Jurong/Tuas, Changi)
+    const cityClusters: { lon: number; lat: number; count: number; maxH: number }[] = [
+      { lon: 103.854, lat: 1.284, count: 24, maxH: 22 }, // Marina Bay & Raffles Place CBD
+      { lon: 103.835, lat: 1.305, count: 14, maxH: 14 }, // Orchard / Central
+      { lon: 103.698, lat: 1.272, count: 14, maxH: 11 }, // Jurong Island Refineries
+      { lon: 103.622, lat: 1.262, count: 12, maxH: 10 }, // Tuas Mega Port Cranes
+      { lon: 103.992, lat: 1.355, count: 12, maxH: 10 }, // Changi Airport Complex
+    ];
+    const bldgMat = new THREE.MeshPhysicalMaterial({
+      color: 0x1e293b,
+      metalness: 0.5,
+      roughness: 0.3,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const bldgEdgeMat = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.4,
+    });
+
+    cityClusters.forEach((cl) => {
+      const [cx, cz] = lonLatToXZ(cl.lon, cl.lat);
+      for (let i = 0; i < cl.count; i++) {
+        const ox = ((i * 37) % 26) - 13;
+        const oz = ((i * 53) % 22) - 11;
+        const bh = 4 + ((i * 19) % cl.maxH);
+        const bw = 2.4 + (i % 3) * 1.1;
+        const geom = new THREE.BoxGeometry(bw, bh, bw);
+        const mesh = new THREE.Mesh(geom, bldgMat);
+        mesh.position.set(cx + ox, 6.0 + bh / 2, cz + oz);
+        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geom), bldgEdgeMat));
+        scene.add(mesh);
+      }
+    });
+
+    // =========================================================================
+    // 3. 7 COASTAL DRONE HIVES & SAF MILITARY CAMPS AROUND SINGAPORE
+    // =========================================================================
+    const base3DNodes: {
+      spec: MilitaryBaseSpec;
+      worldPos: THREE.Vector3;
+      pulseRing: THREE.Mesh;
+      radarDish: THREE.Object3D;
+    }[] = [];
+
+    SINGAPORE_BASES.forEach((bSpec) => {
+      const [bx, bz] = lonLatToXZ(bSpec.lon, bSpec.lat);
+      const baseGroup = new THREE.Group();
+      const baseY = 6.8;
+      baseGroup.position.set(bx, baseY, bz);
+
+      const isCoastal = bSpec.type === 'coastal-hive';
+      const padColor = isCoastal ? 0x00ff41 : 0x38bdf8;
+
+      // Hexagonal Armored Drone Hive Launch Pad
+      const hexGeom = new THREE.CylinderGeometry(6.2, 7.2, 2.2, 6);
+      const hexMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0f172a,
+        emissive: padColor,
+        emissiveIntensity: 0.35,
+        metalness: 0.7,
+        roughness: 0.2,
+      });
+      const hexMesh = new THREE.Mesh(hexGeom, hexMat);
+      baseGroup.add(hexMesh);
+
+      // Glowing Hex Launch Ring
+      const ringG = new THREE.RingGeometry(8.5, 9.8, 6);
+      ringG.rotateX(-Math.PI / 2);
+      const ringM = new THREE.Mesh(
+        ringG,
+        new THREE.MeshBasicMaterial({
+          color: padColor,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.85,
+        })
+      );
+      ringM.position.y = 1.2;
+      baseGroup.add(ringM);
+
+      // Expanding Radar Dome Pulse Ring
+      const pulseG = new THREE.RingGeometry(11, 12.2, 32);
+      pulseG.rotateX(-Math.PI / 2);
+      const pulseM = new THREE.Mesh(
+        pulseG,
+        new THREE.MeshBasicMaterial({
+          color: padColor,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.5,
+        })
+      );
+      pulseM.position.y = 0.8;
+      baseGroup.add(pulseM);
+
+      // Rotating Phased-Array Radar Tower on Base
+      const radarMast = new THREE.Group();
+      radarMast.position.set(0, 2.5, 0);
+      const dish = new THREE.Mesh(
+        new THREE.BoxGeometry(5.2, 2.0, 0.8),
+        new THREE.MeshBasicMaterial({ color: padColor })
+      );
+      dish.position.y = 2.0;
+      radarMast.add(dish);
+      baseGroup.add(radarMast);
+
+      scene.add(baseGroup);
+      base3DNodes.push({
+        spec: bSpec,
+        worldPos: new THREE.Vector3(bx, baseY + 2.0, bz),
+        pulseRing: pulseM,
+        radarDish: radarMast,
+      });
+    });
+
+    // Sovereign Coastal Defense Mesh Network (Faint glowing links between all 7 bases)
+    const networkPts: THREE.Vector3[] = base3DNodes.map((b) => b.worldPos.clone());
+    networkPts.push(base3DNodes[0].worldPos.clone());
+    const networkLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(networkPts),
+      new THREE.LineBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.22 })
+    );
+    scene.add(networkLine);
+
+    // =========================================================================
+    // 4. 4 HOSTILE TARGET MODELS + 2 SCRAMBLING SA-1 DRONES + TRAJECTORY ARCS
+    // =========================================================================
+    const missionTargetGroups: { mesh: THREE.Group; worldPos: THREE.Vector3 }[] =
+      INTERCEPT_MISSIONS.map((m) => {
+        const [tx, tz] = lonLatToXZ(m.targetLon, m.targetLat);
+        const tg = buildHostileTarget3D(m.targetType);
+        tg.position.set(tx, m.targetAltY, tz);
+        scene.add(tg);
+        return {
+          mesh: tg,
+          worldPos: new THREE.Vector3(tx, m.targetAltY + 3.0, tz),
+        };
+      });
+
+    // Primary & Wingman Scrambling SA-1 Drones
+    const primarySa1Drone = buildMiniSa1DroneMesh();
+    const secondarySa1Drone = buildMiniSa1DroneMesh();
+    scene.add(primarySa1Drone);
+    scene.add(secondarySa1Drone);
+
+    // Glowing 3D Flight Trajectory Arcs from Base #1 and Base #2 to Target
+    const trajMatPrimary = new THREE.LineBasicMaterial({
+      color: 0x00ff41,
+      transparent: true,
+      opacity: 0.95,
+    });
+    const trajGeomPrimary = new THREE.BufferGeometry();
+    const trajLinePrimary = new THREE.Line(trajGeomPrimary, trajMatPrimary);
+    scene.add(trajLinePrimary);
+
+    const trajMatSecondary = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const trajGeomSecondary = new THREE.BufferGeometry();
+    const trajLineSecondary = new THREE.Line(trajGeomSecondary, trajMatSecondary);
+    scene.add(trajLineSecondary);
+
+    // Terminal Laser Lock Beam & Kinetic Takedown Shockwave at Target
+    const strikeLaserMat = new THREE.LineBasicMaterial({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.95,
+    });
+    const strikeLaserGeom = new THREE.BufferGeometry();
+    const strikeLaserLine = new THREE.Line(strikeLaserGeom, strikeLaserMat);
+    scene.add(strikeLaserLine);
+
+    const shockwaveRingG = new THREE.RingGeometry(2.0, 4.2, 36);
+    shockwaveRingG.rotateX(-Math.PI / 2);
+    const shockwaveMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.0,
+    });
+    const shockwaveMesh = new THREE.Mesh(shockwaveRingG, shockwaveMat);
+    scene.add(shockwaveMesh);
+
+    const explosionCoreG = new THREE.SphereGeometry(5.0, 18, 18);
+    const explosionCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
+      transparent: true,
+      opacity: 0.0,
+    });
+    const explosionCoreMesh = new THREE.Mesh(explosionCoreG, explosionCoreMat);
+    scene.add(explosionCoreMesh);
+
+    // =========================================================================
+    // 5. ANIMATION LOOP — SCROLL CAMERA + DRONE SCRAMBLE TRAJECTORY + TAKEDOWN
+    // =========================================================================
+    let isDisposed = false;
+    let animId = 0;
+    let lastHudSync = 0;
+    let missionCycleStart = 0;
+    const clock = new THREE.Clock();
+
+    const projectToScreen = (worldVec: THREE.Vector3, w: number, h: number) => {
+      const v = worldVec.clone().project(camera);
+      return {
+        x: (v.x * 0.5 + 0.5) * w,
+        y: (-(v.y * 0.5) + 0.5) * h,
+        inFront: v.z >= -1.0 && v.z <= 1.0,
+      };
+    };
+
+    // Evaluate a 3D parabolic flight trajectory between Base and Target at u in [0, 1]
+    const evalTrajectoryPoint = (
+      origin: THREE.Vector3,
+      dest: THREE.Vector3,
+      u: number,
+      cruiseApex: number
+    ): THREE.Vector3 => {
+      const x = THREE.MathUtils.lerp(origin.x, dest.x, u);
+      const z = THREE.MathUtils.lerp(origin.z, dest.z, u);
+      const baseAlt = THREE.MathUtils.lerp(origin.y, dest.y + 12, u);
+      const arc = Math.sin(u * Math.PI) * cruiseApex;
+      return new THREE.Vector3(x, baseAlt + arc, z);
+    };
+
+    const animate = () => {
+      if (isDisposed) return;
+      animId = requestAnimationFrame(animate);
+
+      const elapsed = clock.getElapsedTime();
+      smoothedProgressRef.current += (progressRef.current - smoothedProgressRef.current) * 0.08;
+      const p = smoothedProgressRef.current;
+
+      // Rotate all 7 base radars & pulse coastal defense rings
+      base3DNodes.forEach((b, idx) => {
+        b.radarDish.rotation.y = elapsed * 2.0 + idx;
+        const pulsePhase = (elapsed * 0.8 + idx * 0.25) % 1.0;
+        const s = 1.0 + pulsePhase * 2.6;
+        b.pulseRing.scale.set(s, s, s);
+        (b.pulseRing.material as THREE.MeshBasicMaterial).opacity = (1.0 - pulsePhase) * 0.55;
+      });
+
+      // Gentle motion on hostile targets
+      missionTargetGroups.forEach((tg, idx) => {
+        tg.mesh.position.x = tg.worldPos.x + Math.sin(elapsed * 0.9 + idx) * 3.5;
+      });
+
+      // Determine active intercept mission index (0..3)
+      const activeMissionIdx =
+        p < 0.37 ? 0 : p < 0.58 ? 1 : p < 0.79 ? 2 : 3;
+      const activeMission = INTERCEPT_MISSIONS[activeMissionIdx];
+      const activeTarget = missionTargetGroups[activeMissionIdx];
+
+      const primaryBase =
+        base3DNodes.find((b) => b.spec.id === activeMission.primaryBaseId) || base3DNodes[0];
+      const secondaryBase =
+        base3DNodes.find((b) => b.spec.id === activeMission.secondaryBaseId) || base3DNodes[1];
+
+      // Reset scramble animation timer when switching missions or clicking Re-Scramble
+      if (lastMissionIdxRef.current !== activeMissionIdx || scrambleResetClockRef.current === -2) {
+        lastMissionIdxRef.current = activeMissionIdx;
+        missionCycleStart = elapsed;
+        scrambleResetClockRef.current = 0;
+      }
+
+      const w = wrapper.clientWidth || 1280;
+      const h = Math.max(1, wrapper.clientHeight || 800);
+      const aspect = w / h;
+      const portraitZoom = aspect < 1.0 ? Math.min(1.55, 0.95 / Math.max(aspect, 0.48)) : 1.0;
+
+      // =======================================================================
+      // CAMERA POSITIONING: ISLAND OVERWATCH (0-16%) vs TACTICAL SECTOR ZOOM
+      // =======================================================================
+      if (p < 0.16 || cameraModeRef.current === 'island') {
+        const targetCamPos = new THREE.Vector3(
+          0,
+          310 * portraitZoom,
+          375 * portraitZoom
+        );
+        camera.position.lerp(targetCamPos, 0.06);
+        const lookTarget = new THREE.Vector3(0, 0, 20);
+        camera.lookAt(lookTarget);
+      } else {
+        // Swoop camera dynamically to frame both the scrambling coastal/military bases AND the offshore target
+        const midX = (primaryBase.worldPos.x + activeTarget.worldPos.x) * 0.5;
+        const midZ = (primaryBase.worldPos.z + activeTarget.worldPos.z) * 0.5;
+        const desiredCam = new THREE.Vector3(
+          midX * 0.65 + activeMission.cameraOffset[0] * 0.45,
+          activeMission.cameraOffset[1] * portraitZoom,
+          midZ + 185 * portraitZoom
+        );
+        camera.position.lerp(desiredCam, 0.06);
+        camera.lookAt(midX, 4, midZ + 12);
+      }
+
+      // =======================================================================
+      // DRONE SCRAMBLE TRAJECTORY & TARGET TAKEDOWN ANIMATION (4.4s Loop)
+      // =======================================================================
+      const targetPos = new THREE.Vector3(
+        activeTarget.mesh.position.x,
+        activeTarget.worldPos.y,
+        activeTarget.mesh.position.z
+      );
+
+      // Build full 3D trajectory curves from Primary Base & Secondary Base to Target
+      const primaryCurvePts: THREE.Vector3[] = [];
+      const secondaryCurvePts: THREE.Vector3[] = [];
+      for (let i = 0; i <= 32; i++) {
+        const u = i / 32;
+        primaryCurvePts.push(evalTrajectoryPoint(primaryBase.worldPos, targetPos, u, 38));
+        secondaryCurvePts.push(evalTrajectoryPoint(secondaryBase.worldPos, targetPos, u, 30));
+      }
+      trajGeomPrimary.setFromPoints(primaryCurvePts);
+      trajGeomSecondary.setFromPoints(secondaryCurvePts);
+
+      // Cycle time: 0.0s -> 2.4s (Drone Scrambling along Trajectory), 2.4s -> 3.2s (Laser Lock & Strike), 3.2s -> 4.4s (Detonation Shockwave)
+      const cycleDuration = 4.4;
+      const cycleTime = (elapsed - missionCycleStart) % cycleDuration;
+      const isInterceptMode = postureRef.current === 'intercept';
+
+      let hudPhase: 'scrambling' | 'locking' | 'impact' = 'scrambling';
+      let hudProgress = 0;
+
+      if (cycleTime < 2.6) {
+        // Phase A: SA-1 Drones scrambling from Coastal Hive & Military Camp toward Target
+        hudPhase = 'scrambling';
+        const u1 = smoothstep(0.0, 2.6, cycleTime);
+        const u2 = smoothstep(0.15, 2.6, cycleTime);
+        hudProgress = u1;
+
+        const d1Pos = evalTrajectoryPoint(primaryBase.worldPos, targetPos, u1 * 0.88, 38);
+        const d1Next = evalTrajectoryPoint(
+          primaryBase.worldPos,
+          targetPos,
+          Math.min(1, u1 * 0.88 + 0.03),
+          38
+        );
+        primarySa1Drone.position.copy(d1Pos);
+        primarySa1Drone.lookAt(d1Next);
+
+        const d2Pos = evalTrajectoryPoint(secondaryBase.worldPos, targetPos, u2 * 0.82, 30);
+        const d2Next = evalTrajectoryPoint(
+          secondaryBase.worldPos,
+          targetPos,
+          Math.min(1, u2 * 0.82 + 0.03),
+          30
+        );
+        secondarySa1Drone.position.copy(d2Pos);
+        secondarySa1Drone.lookAt(d2Next);
+
+        strikeLaserLine.visible = u1 > 0.72;
+        if (strikeLaserLine.visible) {
+          strikeLaserGeom.setFromPoints([d1Pos, targetPos]);
+        }
+        shockwaveMesh.visible = false;
+        explosionCoreMesh.visible = false;
+      } else {
+        // Phase B: SA-1 Drones on station above target — Firing Kinetic Takedown
+        const impactT = clamp01((cycleTime - 2.6) / 1.8);
+        hudPhase = isInterceptMode ? 'impact' : 'locking';
+        hudProgress = impactT;
+
+        const d1Hold = evalTrajectoryPoint(primaryBase.worldPos, targetPos, 0.88, 38);
+        const d2Hold = evalTrajectoryPoint(secondaryBase.worldPos, targetPos, 0.82, 30);
+        primarySa1Drone.position.copy(d1Hold);
+        primarySa1Drone.lookAt(targetPos);
+        secondarySa1Drone.position.copy(d2Hold);
+        secondarySa1Drone.lookAt(targetPos);
+
+        strikeLaserLine.visible = true;
+        strikeLaserMat.color.setHex(isInterceptMode ? 0xef4444 : 0x00ff41);
+        strikeLaserGeom.setFromPoints([d1Hold, targetPos]);
+
+        if (isInterceptMode) {
+          shockwaveMesh.visible = true;
+          shockwaveMesh.position.set(targetPos.x, 1.2, targetPos.z);
+          const sScale = 1.0 + impactT * 11.5;
+          shockwaveMesh.scale.set(sScale, sScale, sScale);
+          shockwaveMat.opacity = (1.0 - impactT) * 0.9;
+
+          explosionCoreMesh.visible = true;
+          explosionCoreMesh.position.copy(targetPos);
+          const cScale = 0.5 + Math.sin(impactT * Math.PI) * 2.6;
+          explosionCoreMesh.scale.set(cScale, cScale, cScale);
+          explosionCoreMat.opacity = (1.0 - impactT) * 0.85;
+        } else {
+          shockwaveMesh.visible = false;
+          explosionCoreMesh.visible = false;
+        }
+      }
+
+      renderer.render(scene, camera);
+
+      // Sync 2D Projected Labels for Coastal Hives, Military Camps, Scrambling Drone & Target (~30 FPS)
+      if (elapsed - lastHudSync > 0.033) {
+        lastHudSync = elapsed;
+
+        const nextBases: ProjectedBaseHud[] = base3DNodes.map((b) => {
+          const proj = projectToScreen(b.worldPos, w, h);
+          const isScrambling =
+            b.spec.id === activeMission.primaryBaseId ||
+            b.spec.id === activeMission.secondaryBaseId;
+          return {
+            ...b.spec,
+            x: proj.x,
+            y: proj.y,
+            inFront: proj.inFront,
+            isScrambling,
+          };
+        });
+        setProjectedBases(nextBases);
+
+        const tProj = projectToScreen(targetPos, w, h);
+        const dProj = projectToScreen(primarySa1Drone.position, w, h);
+        setTargetHud({
+          x: tProj.x,
+          y: tProj.y,
+          inFront: tProj.inFront,
+          droneX: dProj.x,
+          droneY: dProj.y,
+          droneInFront: dProj.inFront,
+          phase: hudPhase,
+          progress: hudProgress,
+        });
+      }
+    };
+
+    animate();
+
+    const handleResize = () => {
+      if (!wrapper) return;
+      const w = wrapper.clientWidth || 1280;
+      const h = wrapper.clientHeight || 800;
+      setViewportSize({ width: w, height: h });
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      isDisposed = true;
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+    };
+  }, []);
+
+  const isSectorZoom = scrollProgress >= 0.16;
+  const activeMissionIdx =
+    scrollProgress < 0.37 ? 0 : scrollProgress < 0.58 ? 1 : scrollProgress < 0.79 ? 2 : 3;
+  const activeMission = INTERCEPT_MISSIONS[activeMissionIdx];
+  const primaryBaseSpec =
+    SINGAPORE_BASES.find((b) => b.id === activeMission.primaryBaseId) || SINGAPORE_BASES[0];
+  const secondaryBaseSpec =
+    SINGAPORE_BASES.find((b) => b.id === activeMission.secondaryBaseId) || SINGAPORE_BASES[1];
+
+  const isIntercept = posture === 'intercept';
+  const accentColor = isIntercept ? '#ef4444' : '#00ff41';
+  const accentBorderClass = isIntercept ? 'border-red-500/60' : 'border-[#00ff41]/60';
+  const accentTextClass = isIntercept ? 'text-red-400' : 'text-[#00ff41]';
+  const accentBgClass = isIntercept ? 'bg-red-500/15' : 'bg-[#00ff41]/15';
+
   return (
-    <section className="py-16 sm:py-24 lg:py-32 bg-[#07090D] border-y border-white/10">
-      <div className="site-container">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 sm:mb-14">
-          <div className="space-y-3 max-w-3xl">
-            <div className="inline-flex items-center gap-2.5 rounded-full bg-[#00ff41]/10 border border-[#00ff41]/30 px-3.5 py-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#00ff41] animate-pulse" />
-              <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.2em] text-[#00ff41] font-bold">
-                INTERACTIVE SOVEREIGN DEFENSE DOME // 734 KM²
-              </span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
-              Singapore Strait &amp; Airspace Chokepoint Command
-            </h2>
-            <p className="text-white/65 text-sm sm:text-base leading-relaxed">
-              Select any strategic chokepoint across the Singapore Strait and sovereign approaches to
-              inspect how SA-1 &ldquo;Vanguard&rdquo; and A.V.I.A.R.S. neutralize maritime, aerial,
-              and electronic warfare threats in real time.
-            </p>
-          </div>
+    <div ref={containerRef} className="relative w-full h-[500vh] sm:h-[560vh] lg:h-[640vh]">
+      {/* Sticky Full-Viewport 3D Singapore Coastal Hive & Airbase Intercept Stage */}
+      <div className="sticky top-16 sm:top-20 lg:top-24 w-full h-[calc(100svh-4rem)] sm:h-[calc(100svh-5rem)] lg:h-[calc(100vh-6rem)] overflow-hidden bg-[#060A11] border-y border-white/10">
+        {/* Three.js 3D Singapore Map & Trajectory Canvas */}
+        <div ref={canvasWrapperRef} className="relative z-10 w-full h-full" />
 
-          {/* Sector Quick-Selector Pills */}
-          <div className="flex flex-wrap gap-2">
-            {SINGAPORE_SECTORS.map((sec) => {
-              const isSelected = sec.id === activeSector.id;
-              return (
-                <button
-                  key={sec.id}
-                  type="button"
-                  onClick={() => handleSelectSector(sec.id)}
-                  className={`rounded-xl px-3.5 py-2 text-xs font-mono uppercase tracking-wider border transition-all ${
-                    isSelected
-                      ? 'bg-[#00ff41] text-black border-[#00ff41] font-bold shadow-[0_0_20px_rgba(0,255,65,0.35)]'
-                      : 'bg-white/[0.03] text-white/70 border-white/10 hover:border-[#00ff41]/40 hover:text-white'
-                  }`}
+        {/* Subtle Tactical Vignette */}
+        <div
+          className="pointer-events-none absolute inset-0 z-15"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.02) 0%, rgba(6, 10, 17, 0.68) 94%)',
+          }}
+        />
+
+        {/* =====================================================================
+            2D SVG TACTICAL HUD OVERLAY — Base Markers, Scrambling Drone & Target
+           ===================================================================== */}
+        <svg
+          className="pointer-events-none absolute inset-0 z-20 w-full h-full"
+          viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}
+          preserveAspectRatio="none"
+        >
+          {/* Projected 2D Callout Badges for all 7 Coastal Hives & SAF Airbases */}
+          {projectedBases.map((base) => {
+            if (
+              !base.inFront ||
+              base.x < 40 ||
+              base.x > viewportSize.width - 40 ||
+              base.y < 70 ||
+              base.y > viewportSize.height - 80
+            ) {
+              return null;
+            }
+            const badgeColor = base.isScrambling
+              ? '#00ff41'
+              : base.type === 'coastal-hive'
+              ? '#38bdf8'
+              : '#94a3b8';
+            return (
+              <g key={base.id} opacity={base.isScrambling || !isSectorZoom ? 0.95 : 0.45}>
+                <circle
+                  cx={base.x}
+                  cy={base.y}
+                  r={base.isScrambling ? 8 : 4.5}
+                  fill="none"
+                  stroke={badgeColor}
+                  strokeWidth={base.isScrambling ? 2 : 1.2}
+                />
+                <circle cx={base.x} cy={base.y} r="2.5" fill={badgeColor} />
+                <rect
+                  x={base.x - 62}
+                  y={base.y - 28}
+                  width="124"
+                  height="16"
+                  rx="4"
+                  fill="rgba(6, 10, 17, 0.88)"
+                  stroke={badgeColor}
+                  strokeWidth={base.isScrambling ? 1.4 : 0.8}
+                />
+                <text
+                  x={base.x}
+                  y={base.y - 17}
+                  textAnchor="middle"
+                  fill={badgeColor}
+                  fontSize="8.5"
+                  fontFamily="monospace"
+                  fontWeight="bold"
                 >
-                  {sec.code}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  {base.isScrambling ? `▲ SCRAMBLE: ${base.code}` : base.code}
+                </text>
+              </g>
+            );
+          })}
 
-        {/* Interactive Map + Telemetry Dossier Grid */}
-        <div className="grid lg:grid-cols-12 gap-6 sm:gap-8 items-stretch">
-          {/* Left 7 Cols: Interactive Dark-Mode Singapore Strait Radar & AIS Map */}
-          <div className="lg:col-span-7 bg-[#0B0F17] border border-white/10 rounded-2xl overflow-hidden flex flex-col justify-between relative shadow-2xl">
-            {/* Top Telemetry Bar inside Map */}
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3.5 bg-black/60 border-b border-white/10 text-[10px] sm:text-xs font-mono">
-              <div className="flex items-center gap-2 text-[#00ff41]">
-                <span className="w-2 h-2 rounded-full bg-[#00ff41] animate-ping" />
-                <span className="font-bold">LIVE SINGAPORE STRAIT TSS OVERWATCH</span>
-              </div>
-              <div className="text-white/50">
-                COORDS: <span className="text-white/85">{activeSector.coords}</span>
-              </div>
-            </div>
-
-            {/* Interactive SVG Tactical Map */}
-            <div className="relative w-full aspect-[16/10] bg-[#060A10]">
-              <svg
-                viewBox="0 0 920 520"
-                className="w-full h-full select-none"
-                role="img"
-                aria-label="Singapore Strait Interactive Defense Chokepoint Map"
+          {/* Projected Scrambling SA-1 Drone In-Flight Reticle */}
+          {targetHud.droneInFront && (
+            <g>
+              <circle
+                cx={targetHud.droneX}
+                cy={targetHud.droneY}
+                r="11"
+                fill="none"
+                stroke="#00ff41"
+                strokeWidth="1.5"
+                strokeDasharray="3 2"
+              />
+              <circle cx={targetHud.droneX} cy={targetHud.droneY} r="3" fill="#00ff41" />
+              <text
+                x={targetHud.droneX + 15}
+                y={targetHud.droneY + 3}
+                fill="#00ff41"
+                fontSize="9.5"
+                fontFamily="monospace"
+                fontWeight="bold"
               >
-                <defs>
-                  <radialGradient id="sgRadarGlow" cx="50%" cy="50%" r="50%">
-                    <stop
-                      offset="0%"
-                      stopColor={interceptSimulated ? '#ef4444' : '#00ff41'}
-                      stopOpacity="0.28"
-                    />
-                    <stop
-                      offset="70%"
-                      stopColor={interceptSimulated ? '#ef4444' : '#00ff41'}
-                      stopOpacity="0.06"
-                    />
-                    <stop offset="100%" stopColor="#00ff41" stopOpacity="0" />
-                  </radialGradient>
-                  <pattern id="sgTacticalGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path
-                      d="M 40 0 L 0 0 0 40"
-                      fill="none"
-                      stroke="rgba(56, 189, 248, 0.07)"
-                      strokeWidth="1"
-                    />
-                  </pattern>
-                </defs>
+                {targetHud.phase === 'scrambling'
+                  ? `SA-1 INTERCEPTOR [EN ROUTE ${(targetHud.progress * 100).toFixed(0)}%]`
+                  : 'SA-1 ON STATION // WEAPONS FREE'}
+              </text>
+            </g>
+          )}
 
-                {/* Tactical Coordinate Grid Background */}
-                <rect width="920" height="520" fill="url(#sgTacticalGrid)" />
-
-                {/* Johor / Northern Coastline Silhouette */}
-                <path
-                  d="M 40,20 L 880,20 L 880,125 L 790,145 L 710,115 L 615,105 L 520,82 L 410,68 L 295,88 L 195,128 L 95,180 L 40,175 Z"
-                  fill="#0D1522"
-                  stroke="#1E293B"
-                  strokeWidth="1.5"
-                />
-                <text
-                  x="440"
-                  y="48"
-                  fill="rgba(148,163,184,0.28)"
-                  fontSize="11"
-                  fontFamily="monospace"
-                  letterSpacing="4"
-                >
-                  JOHOR STRAIT // NORTHERN APPROACH
-                </text>
-
-                {/* Singapore Main Sovereign Island Polygon */}
-                <path
-                  d="M 135,235 L 205,155 L 305,115 L 420,98 L 535,120 L 645,148 L 745,175 L 775,212 L 730,248 L 625,268 L 525,292 L 435,298 L 345,278 L 245,275 L 155,288 Z"
-                  fill="#132032"
-                  stroke="#00ff41"
-                  strokeOpacity="0.55"
-                  strokeWidth="2"
-                />
-
-                {/* Jurong Island */}
-                <path
-                  d="M 255,296 L 325,292 L 335,325 L 272,332 Z"
-                  fill="#172840"
-                  stroke="#38bdf8"
-                  strokeOpacity="0.65"
-                  strokeWidth="1.5"
-                />
-
-                {/* Sentosa & Southern Islands */}
-                <path
-                  d="M 455,310 L 508,306 L 515,322 L 462,326 Z"
-                  fill="#172840"
-                  stroke="#38bdf8"
-                  strokeOpacity="0.55"
+          {/* Projected Hostile Target Reticle + Dashed Trajectory Vector */}
+          {targetHud.inFront && (
+            <g>
+              {targetHud.droneInFront && (
+                <line
+                  x1={targetHud.droneX}
+                  y1={targetHud.droneY}
+                  x2={targetHud.x}
+                  y2={targetHud.y}
+                  stroke={accentColor}
                   strokeWidth="1.2"
+                  strokeDasharray="4 4"
+                  opacity="0.7"
                 />
+              )}
 
-                {/* Pulau Tekong & Pulau Ubin (North-East) */}
-                <path
-                  d="M 665,122 L 712,118 L 718,136 L 670,140 Z"
-                  fill="#152338"
-                  stroke="#38bdf8"
-                  strokeOpacity="0.45"
-                  strokeWidth="1.2"
-                />
-                <path
-                  d="M 755,132 L 820,126 L 832,162 L 762,168 Z"
-                  fill="#152338"
-                  stroke="#00ff41"
-                  strokeOpacity="0.45"
-                  strokeWidth="1.5"
-                />
+              <rect
+                x={targetHud.x - 32}
+                y={targetHud.y - 32}
+                width="64"
+                height="64"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="1.8"
+              />
+              <circle cx={targetHud.x} cy={targetHud.y} r="4" fill="#ef4444" />
 
-                {/* Southern Riau Archipelago / Batam-Bintan Strait Boundary */}
-                <path
-                  d="M 180,485 L 420,455 L 680,445 L 890,465 L 890,520 L 180,520 Z"
-                  fill="#0B121D"
-                  stroke="#1E293B"
-                  strokeWidth="1.5"
-                />
-
-                {/* Singapore Strait Traffic Separation Scheme (TSS) Shipping Lanes */}
-                <path
-                  d="M 35,385 Q 290,395 540,368 T 895,285"
-                  fill="none"
-                  stroke="#38bdf8"
-                  strokeOpacity="0.35"
-                  strokeWidth="2"
-                  strokeDasharray="8 6"
-                />
-                <path
-                  d="M 35,418 Q 295,428 548,400 T 895,318"
-                  fill="none"
-                  stroke="#00ff41"
-                  strokeOpacity="0.3"
-                  strokeWidth="2"
-                  strokeDasharray="8 6"
-                />
-                <text
-                  x="430"
-                  y="428"
-                  fill="rgba(56,189,248,0.55)"
-                  fontSize="10"
-                  fontFamily="monospace"
-                  letterSpacing="2"
-                >
-                  SINGAPORE STRAIT TSS // 130,000+ VESSELS ANNUALLY
-                </text>
-
-                {/* Simulated Commercial Vessel AIS Tracks along TSS */}
-                {[
-                  { x: 110, y: 392, label: 'AIS-OK // VLCC' },
-                  { x: 385, y: 388, label: 'AIS-OK // CONTAINER' },
-                  { x: 635, y: 348, label: 'AIS-OK // LNG CARRIER' },
-                  { x: 825, y: 302, label: 'AIS-OK // BULK' },
-                ].map((v, idx) => (
-                  <g key={idx} opacity="0.65">
-                    <polygon
-                      points={`${v.x},${v.y - 4} ${v.x + 8},${v.y} ${v.x},${v.y + 4}`}
-                      fill="#38bdf8"
-                    />
-                    <text
-                      x={v.x + 12}
-                      y={v.y + 3}
-                      fill="#38bdf8"
-                      fontSize="8"
-                      fontFamily="monospace"
-                    >
-                      {v.label}
-                    </text>
-                  </g>
-                ))}
-
-                {/* Active Chokepoint Radar Dome & Threat Lock Visualization */}
-                <g>
+              {targetHud.phase === 'impact' && isIntercept && (
+                <>
                   <circle
-                    cx={activeSector.mapX}
-                    cy={activeSector.mapY}
-                    r={activeSector.radarRadius}
-                    fill="url(#sgRadarGlow)"
-                    stroke={interceptSimulated ? '#ef4444' : '#00ff41'}
-                    strokeOpacity="0.55"
-                    strokeWidth="1.5"
-                    strokeDasharray="6 4"
-                  />
-                  <circle
-                    cx={activeSector.mapX}
-                    cy={activeSector.mapY}
-                    r={activeSector.radarRadius * 0.55}
+                    cx={targetHud.x}
+                    cy={targetHud.y}
+                    r={22 + targetHud.progress * 48}
                     fill="none"
-                    stroke={interceptSimulated ? '#ef4444' : '#00ff41'}
-                    strokeOpacity="0.3"
-                    strokeWidth="1"
-                  />
-
-                  {/* Simulated Hostile Target Offset from Chokepoint + Intercept Vector */}
-                  <line
-                    x1={activeSector.mapX}
-                    y1={activeSector.mapY}
-                    x2={activeSector.mapX + 46}
-                    y2={activeSector.mapY + 42}
-                    stroke={interceptSimulated ? '#ef4444' : '#fbbf24'}
-                    strokeWidth="1.8"
-                    strokeDasharray={interceptSimulated ? 'none' : '4 3'}
-                  />
-                  <rect
-                    x={activeSector.mapX + 36}
-                    y={activeSector.mapY + 32}
-                    width="20"
-                    height="20"
-                    fill="none"
-                    stroke="#ef4444"
-                    strokeWidth="1.8"
-                  />
-                  <circle
-                    cx={activeSector.mapX + 46}
-                    cy={activeSector.mapY + 42}
-                    r="3.5"
-                    fill="#ef4444"
+                    stroke="#fbbf24"
+                    strokeWidth="2"
+                    opacity={Math.max(0, 1 - targetHud.progress)}
                   />
                   <text
-                    x={activeSector.mapX + 62}
-                    y={activeSector.mapY + 45}
-                    fill={interceptSimulated ? '#00ff41' : '#ef4444'}
-                    fontSize="9"
+                    x={targetHud.x}
+                    y={targetHud.y - 42}
+                    textAnchor="middle"
+                    fill="#fbbf24"
+                    fontSize="10.5"
                     fontFamily="monospace"
                     fontWeight="bold"
                   >
-                    {interceptSimulated
-                      ? 'THREAT INTERDICTED [< 5ms]'
-                      : 'HOSTILE ANOMALY LOCKED'}
+                    ✓ TARGET NEUTRALIZED // STRAIT SECURED
                   </text>
-                </g>
+                </>
+              )}
+            </g>
+          )}
+        </svg>
 
-                {/* All 4 Interactive Chokepoint Nodes */}
-                {SINGAPORE_SECTORS.map((sec) => {
-                  const isSelected = sec.id === activeSector.id;
-                  return (
-                    <g
-                      key={sec.id}
-                      onClick={() => handleSelectSector(sec.id)}
-                      className="cursor-pointer"
-                    >
-                      <circle
-                        cx={sec.mapX}
-                        cy={sec.mapY}
-                        r={isSelected ? 14 : 10}
-                        fill={isSelected ? 'rgba(0,255,65,0.22)' : 'rgba(15,23,42,0.85)'}
-                        stroke={isSelected ? '#00ff41' : '#38bdf8'}
-                        strokeWidth={isSelected ? 2.2 : 1.5}
-                      />
-                      <circle
-                        cx={sec.mapX}
-                        cy={sec.mapY}
-                        r={isSelected ? 4.5 : 3}
-                        fill={isSelected ? '#00ff41' : '#38bdf8'}
-                      />
-                      <rect
-                        x={sec.mapX - 48}
-                        y={sec.mapY - 34}
-                        width="96"
-                        height="16"
-                        rx="4"
-                        fill="rgba(5, 8, 14, 0.88)"
-                        stroke={isSelected ? '#00ff41' : 'rgba(255,255,255,0.18)'}
-                        strokeWidth="1"
-                      />
-                      <text
-                        x={sec.mapX}
-                        y={sec.mapY - 23}
-                        textAnchor="middle"
-                        fill={isSelected ? '#00ff41' : '#e2e8f0'}
-                        fontSize="9"
-                        fontFamily="monospace"
-                        fontWeight="bold"
-                      >
-                        {sec.code}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
+        {/* =====================================================================
+            TOP BAR HUD — Active Singapore Sector + Camera Mode + Posture Toggle
+           ===================================================================== */}
+        <div className="pointer-events-none absolute z-30 top-3 sm:top-5 lg:top-6 left-3 right-3 sm:left-6 sm:right-6 lg:left-10 lg:right-10 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 sm:gap-3">
+          {/* Left: Active Singapore Intercept Sector Status */}
+          <div className="pointer-events-auto flex items-center justify-between sm:justify-start gap-3 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="w-2.5 h-2.5 rounded-full animate-pulse shrink-0"
+                style={{ backgroundColor: accentColor }}
+              />
+              <div className="min-w-0">
+                <p
+                  className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.18em] font-bold truncate ${accentTextClass}`}
+                >
+                  {isSectorZoom
+                    ? `${activeMission.code} // SCRAMBLE FROM ${primaryBaseSpec.code}`
+                    : 'SINGAPORE SOVEREIGN DEFENSE DOME // 7 COASTAL HIVES & SAF AIRBASES'}
+                </p>
+                <p className="text-xs sm:text-sm font-bold text-white truncate">
+                  {isSectorZoom
+                    ? `TARGET: ${activeMission.targetName}`
+                    : 'Scroll Down to Scramble SA-1 Drones from Coastal Bases to Intercept Threats'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Sector Quick-Jump Pills + Camera View Toggle + Takedown Mode */}
+          <div className="pointer-events-auto flex flex-wrap items-center justify-between sm:justify-end gap-2">
+            {/* Sector Quick-Jump Buttons */}
+            <div className="hidden md:flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1 text-[10px] font-mono uppercase">
+              {[
+                { label: 'Overview', p: 0.02, active: !isSectorZoom },
+                { label: '01 Tuas', p: 0.24, active: isSectorZoom && activeMissionIdx === 0 },
+                { label: '02 Tengah/Jurong', p: 0.46, active: isSectorZoom && activeMissionIdx === 1 },
+                { label: '03 Marina/PLAB', p: 0.67, active: isSectorZoom && activeMissionIdx === 2 },
+                { label: '04 Changi', p: 0.88, active: isSectorZoom && activeMissionIdx === 3 },
+              ].map((btn) => (
+                <button
+                  key={btn.label}
+                  type="button"
+                  onClick={() => jumpToScrollProgress(btn.p)}
+                  className={`rounded-lg px-2.5 py-1.5 transition-all whitespace-nowrap ${
+                    btn.active
+                      ? 'bg-[#00ff41]/20 text-[#00ff41] border border-[#00ff41]/50 font-bold'
+                      : 'text-white/55 hover:text-white'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
             </div>
 
-            {/* Bottom Map Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 bg-black/60 border-t border-white/10">
-              <div className="flex items-center gap-4 text-[11px] font-mono text-white/65">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#00ff41]" /> SA-1 Overwatch Node
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Anomaly / Threat Lock
-                </span>
-              </div>
+            {/* Camera View Toggle (Sector Follow vs Full Island Map) */}
+            <div className="flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1">
               <button
                 type="button"
-                onClick={() => setInterceptSimulated((prev) => !prev)}
-                className={`rounded-lg px-3.5 py-1.5 text-[11px] font-mono font-bold uppercase tracking-wider transition-all ${
-                  interceptSimulated
-                    ? 'bg-[#00ff41] text-black shadow-[0_0_16px_rgba(0,255,65,0.4)]'
-                    : 'bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white border border-red-500/50'
+                onClick={() => setCameraMode('tactical')}
+                className={`rounded-lg px-2.5 py-1.5 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  cameraMode === 'tactical'
+                    ? 'bg-sky-400 text-black font-bold'
+                    : 'text-white/60 hover:text-white'
                 }`}
               >
-                {interceptSimulated
-                  ? '✓ Threat Neutralized — Reset Simulation'
-                  : 'Simulate SA-1 Threat Intercept'}
+                3D Sector Zoom
+              </button>
+              <button
+                type="button"
+                onClick={() => setCameraMode('island')}
+                className={`rounded-lg px-2.5 py-1.5 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  cameraMode === 'island'
+                    ? 'bg-sky-400 text-black font-bold'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                Full Island Map
+              </button>
+            </div>
+
+            {/* Defense Posture Toggle: Kinetic Takedown vs ISR Overwatch */}
+            <div className="flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setPosture('intercept')}
+                className={`rounded-lg px-3 py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  posture === 'intercept'
+                    ? 'bg-red-500 text-white font-bold shadow-[0_0_16px_rgba(239,68,68,0.5)]'
+                    : 'text-white/65 hover:text-white'
+                }`}
+              >
+                Kinetic Takedown
+              </button>
+              <button
+                type="button"
+                onClick={() => setPosture('overwatch')}
+                className={`rounded-lg px-3 py-1.5 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                  posture === 'overwatch'
+                    ? 'bg-[#00ff41] text-black font-bold shadow-[0_0_16px_rgba(0,255,65,0.4)]'
+                    : 'text-white/65 hover:text-white'
+                }`}
+              >
+                Recon Overwatch
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Right 5 Cols: Active Chokepoint Tactical Dossier Card */}
-          <div className="lg:col-span-5 bg-[#10141D] border border-white/10 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/30 px-3 py-1 rounded-md font-bold">
-                  {activeSector.domain}
-                </span>
-                <span className="text-xs font-mono text-white/45">{activeSector.code}</span>
-              </div>
-
-              <div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-1.5">
-                  {activeSector.name}
-                </h3>
-                <p className="text-xs font-mono text-red-400">{activeSector.threatTelemetry}</p>
-              </div>
-
-              {/* Threat Scenario Box */}
-              <div className="bg-red-500/[0.06] border border-red-500/25 rounded-xl p-4">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-red-400 font-bold mb-1">
-                  DETECTED CHOKEPOINT THREAT SCENARIO
-                </p>
-                <p className="text-xs sm:text-sm font-semibold text-white">
-                  {activeSector.threatTitle}
-                </p>
-              </div>
-
-              {/* How A.V.I.A.R.S. + SA-1 Neutralizes It */}
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-white/45 mb-1.5">
-                  AUTONOMOUS A.V.I.A.R.S. + SA-1 RESPONSE
-                </p>
-                <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
-                  {activeSector.aviarsSolution}
-                </p>
-              </div>
-
-              {/* Active Hardware / Software Subsystem */}
-              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3.5">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-sky-400 font-bold mb-1">
-                  PRIMARY SUBSYSTEM ENGAGED
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-white">
-                  {activeSector.subsystemUsed}
-                </p>
-              </div>
-            </div>
-
-            {/* 3 Sector Telemetry Benchmarks */}
-            <div className="grid grid-cols-3 gap-2.5 pt-6 mt-6 border-t border-white/10">
-              {activeSector.metrics.map((m) => (
-                <div
-                  key={m.label}
-                  className="bg-black/45 border border-white/10 rounded-xl p-3 text-center"
-                >
-                  <p className="text-[10px] text-white/45 uppercase tracking-wider mb-1">
-                    {m.label}
-                  </p>
-                  <p className="text-xs sm:text-sm font-bold font-mono text-[#00ff41]">{m.value}</p>
-                </div>
-              ))}
+        {/* =====================================================================
+            PHASE 0 PROMPT OVERLAY (Full Island Overview 0% - 16%)
+           ===================================================================== */}
+        {!isSectorZoom && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-6 sm:bottom-10 z-25 flex justify-center px-4">
+            <div className="bg-black/85 backdrop-blur-xl border border-[#00ff41]/40 rounded-2xl px-5 py-3.5 sm:px-7 sm:py-4 text-center max-w-2xl shadow-2xl">
+              <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.22em] text-[#00ff41] font-bold mb-1">
+                7 COASTAL DRONE HIVES &amp; SAF AIRBASES // 360° SOVEREIGN PERIMETER
+              </p>
+              <p className="text-xs sm:text-sm text-white/85">
+                Scroll down to watch <strong className="text-[#00ff41]">SA-1 &ldquo;Vanguard&rdquo;</strong>{' '}
+                interceptors scramble from <strong className="text-sky-300">Tuas Naval Base, Tengah AB, Jurong Island, Marina South, Paya Lebar AB, and Changi</strong> along 3D trajectories to neutralize incoming threats.
+              </p>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* =====================================================================
+            DESKTOP SCRAMBLE & TARGET TAKEDOWN DOSSIER CARD (lg+)
+           ===================================================================== */}
+        {isSectorZoom && (
+          <div className="pointer-events-none absolute inset-y-0 right-7 xl:right-12 z-30 hidden lg:flex items-center">
+            <div
+              className={`pointer-events-auto w-[395px] xl:w-[430px] bg-black/88 backdrop-blur-2xl border ${accentBorderClass} rounded-2xl p-6 shadow-2xl transition-all duration-300`}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span
+                  className={`text-[10px] font-mono uppercase tracking-[0.18em] font-bold px-2.5 py-1 rounded ${accentBgClass} ${accentTextClass}`}
+                >
+                  {activeMission.code}
+                </span>
+                <span className="text-xs font-mono text-white/60">
+                  INTERCEPT: <strong className="text-[#00ff41]">{activeMission.interceptTimeSec}</strong>
+                </span>
+              </div>
+
+              <p className="text-[11px] font-mono uppercase tracking-wider text-white/45 mt-1">
+                {activeMission.sectorTitle} ({activeMission.distanceKm})
+              </p>
+              <h3 className="text-xl font-bold text-white tracking-tight mt-1 mb-1">
+                {activeMission.targetName}
+              </h3>
+              <p className={`text-xs font-mono mb-4 ${accentTextClass}`}>
+                {activeMission.threatTelemetry}
+              </p>
+
+              {/* Launching Coastal Hives & Military Camps */}
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3.5 mb-3.5">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-[#00ff41] font-bold mb-1.5">
+                  SCRAMBLING COASTAL HIVE &amp; MILITARY BASE
+                </p>
+                <div className="space-y-1 text-xs">
+                  <p className="text-white font-semibold flex items-center justify-between">
+                    <span>1. {primaryBaseSpec.name}</span>
+                    <span className="text-[10px] font-mono text-[#00ff41]">PRIMARY</span>
+                  </p>
+                  <p className="text-white/75 flex items-center justify-between">
+                    <span>2. {secondaryBaseSpec.name}</span>
+                    <span className="text-[10px] font-mono text-sky-400">WINGMAN</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Trajectory & Takedown Execution */}
+              <div className="border-t border-white/10 pt-3.5 mb-3.5">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-white/45 mb-1">
+                  3D TRAJECTORY &amp; TARGET TAKEDOWN
+                </p>
+                <p className="text-xs text-white/80 leading-relaxed mb-2">
+                  {activeMission.scrambleSummary}
+                </p>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  {activeMission.takedownMechanics}
+                </p>
+              </div>
+
+              {/* Active Hardware / Software Chain + Re-Launch Button */}
+              <div className="flex items-center justify-between gap-2.5 pt-2 border-t border-white/10">
+                <span className="text-[10px] font-mono text-sky-400 font-bold truncate">
+                  {activeMission.subsystemBadge}
+                </span>
+                <button
+                  type="button"
+                  onClick={triggerManualReScramble}
+                  className="shrink-0 rounded-lg bg-red-500/20 hover:bg-red-500 border border-red-500/60 text-red-300 hover:text-white px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
+                >
+                  Re-Launch Drone
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            MOBILE & TABLET SCRAMBLE CARD (< lg)
+           ===================================================================== */}
+        {isSectorZoom && (
+          <div className="pointer-events-auto lg:hidden absolute z-30 bottom-3 sm:bottom-5 left-3 right-3 sm:left-6 sm:right-6">
+            <div className="max-w-6xl mx-auto">
+              <div
+                className={`bg-black/90 backdrop-blur-xl border ${accentBorderClass} rounded-xl p-3.5 sm:p-4 shadow-2xl`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span
+                    className={`text-[10px] font-mono uppercase tracking-wider font-bold ${accentTextClass}`}
+                  >
+                    {activeMission.code} // {activeMission.targetName}
+                  </span>
+                  <span className="text-[10px] font-mono text-[#00ff41] shrink-0">
+                    {activeMission.interceptTimeSec}
+                  </span>
+                </div>
+                <p className="text-[11px] font-mono text-sky-300 mb-1">
+                  LAUNCHING FROM: {primaryBaseSpec.name} + {secondaryBaseSpec.code}
+                </p>
+                <p className="text-[11px] sm:text-xs text-white/80 leading-snug mb-2">
+                  {activeMission.scrambleSummary}
+                </p>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+                  <span className="text-[10px] font-mono text-white/60 truncate">
+                    {activeMission.subsystemBadge}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={triggerManualReScramble}
+                    className="shrink-0 rounded bg-red-500/25 hover:bg-red-500 border border-red-500/60 text-red-300 hover:text-white px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider transition-all"
+                  >
+                    Re-Launch Drone
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }
