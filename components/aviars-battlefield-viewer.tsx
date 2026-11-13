@@ -1096,11 +1096,62 @@ export default function AviarsBattlefieldViewer() {
     const ballisticMat = new THREE.LineBasicMaterial({
       color: 0x00ff41,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.75,
     });
     const ballisticGeom = new THREE.BufferGeometry();
     const ballisticArc = new THREE.Line(ballisticGeom, ballisticMat);
     scene.add(ballisticArc);
+
+    // 3D Forward SA-1 Interceptor Drone that smoothly banks & flies from Target to Target in POV
+    const forwardSa1Drone = new THREE.Group();
+    forwardSa1Drone.visible = false;
+    const fwdBodyMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0f172a,
+      metalness: 0.75,
+      roughness: 0.25,
+    });
+    const fwdEdgeMat = new THREE.LineBasicMaterial({
+      color: 0x00ff41,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const fwdCore = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.3, 8.8), fwdBodyMat);
+    fwdCore.add(new THREE.LineSegments(new THREE.EdgesGeometry(fwdCore.geometry), fwdEdgeMat));
+    forwardSa1Drone.add(fwdCore);
+
+    const fwdNose = new THREE.Mesh(
+      new THREE.SphereGeometry(1.15, 14, 14),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+    );
+    fwdNose.position.set(0, -0.1, -4.5);
+    forwardSa1Drone.add(fwdNose);
+
+    const fwdRotorCoords: [number, number][] = [
+      [-5.2, -4.2],
+      [5.2, -4.2],
+      [-5.2, 4.2],
+      [5.2, 4.2],
+    ];
+    fwdRotorCoords.forEach(([rx, rz]) => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.35, 0.65), fwdBodyMat);
+      arm.position.set(rx * 0.55, 0, rz * 0.55);
+      arm.rotation.y = Math.atan2(rx, rz);
+      forwardSa1Drone.add(arm);
+
+      const shroud = new THREE.Mesh(
+        new THREE.RingGeometry(1.6, 2.1, 20),
+        new THREE.MeshBasicMaterial({
+          color: 0x00ff41,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.85,
+        })
+      );
+      shroud.rotateX(-Math.PI / 2);
+      shroud.position.set(rx, 0.25, rz);
+      forwardSa1Drone.add(shroud);
+    });
+    scene.add(forwardSa1Drone);
 
     // 3D Precision Micro-Munition + Impact Shockwave Ring for Attack Mode Kinetic Intercept
     const munitionGroup = new THREE.Group();
@@ -1147,6 +1198,13 @@ export default function AviarsBattlefieldViewer() {
     let animId = 0;
     let lastHudSync = 0;
 
+    // Persistent smoothed vectors so transitions between targets NEVER cut or snap
+    const smoothedLookPt = new THREE.Vector3(0, 0, -110);
+    const smoothedAimPt = target3DObjects[0].position.clone().add(new THREE.Vector3(0, 6, 0));
+    const smoothedForwardDronePos = new THREE.Vector3(0, -6, -90);
+    let smoothedCamRoll = 0;
+    let smoothedDroneBank = 0;
+
     const projectWorldToScreen = (worldVec: THREE.Vector3, w: number, h: number) => {
       const v = worldVec.clone().project(camera);
       return {
@@ -1162,7 +1220,7 @@ export default function AviarsBattlefieldViewer() {
 
       const elapsed = clock.getElapsedTime();
       const targetP = progressRef.current;
-      smoothedProgressRef.current += (targetP - smoothedProgressRef.current) * 0.085;
+      smoothedProgressRef.current += (targetP - smoothedProgressRef.current) * 0.08;
       const p = smoothedProgressRef.current;
 
       const curMode = missionModeRef.current;
@@ -1224,6 +1282,7 @@ export default function AviarsBattlefieldViewer() {
         seaMat.color.setHex(0x0ea5e9);
       }
       targetRingMats.forEach((rm) => rm.color.setHex(accentHex));
+      fwdEdgeMat.color.setHex(accentHex);
 
       // Spin SA-1 Vanguard rotors
       spinningRotors.forEach((r) => {
@@ -1287,6 +1346,7 @@ export default function AviarsBattlefieldViewer() {
         const tZoomIntoLens = smoothstep(0.09, 0.16, p);
 
         droneRoot.visible = true;
+        forwardSa1Drone.visible = false;
         const hoverY = Math.sin(elapsed * 2.2) * 2.0;
         droneRoot.position.set(0, hoverY, 0);
 
@@ -1310,7 +1370,16 @@ export default function AviarsBattlefieldViewer() {
         const camZ = THREE.MathUtils.lerp(midCamZ, 15, tZoomIntoLens);
 
         camera.position.set(camX, camY, camZ);
-        camera.lookAt(0, hoverY, -110 * tZoomIntoLens);
+        const studioLook = new THREE.Vector3(0, hoverY, -110 * tZoomIntoLens);
+        smoothedLookPt.lerp(studioLook, 0.15);
+        smoothedCamRoll += (0 - smoothedCamRoll) * 0.12;
+        camera.up.set(Math.sin(smoothedCamRoll), Math.cos(smoothedCamRoll), 0);
+        camera.lookAt(smoothedLookPt);
+
+        // Pre-align smoothedAimPt with Target 0 so entry into POV is 100% seamless
+        const firstAim = target3DObjects[0].position.clone().add(new THREE.Vector3(0, 6, 0));
+        smoothedAimPt.lerp(firstAim, 0.15);
+        smoothedForwardDronePos.set(0, hoverY - 4, -55);
 
         laserLine.visible = false;
         ballisticArc.visible = false;
@@ -1320,8 +1389,10 @@ export default function AviarsBattlefieldViewer() {
       } else {
         // =====================================================================
         // CONTINUOUS POV FLIGHT: LAND (16-44%) -> AIR (44-72%) -> NAVAL (72-100%)
+        // SMOOTH GIMBAL SLEW, BANKING ROLL & FORWARD DRONE TRAJECTORY
         // =====================================================================
         droneRoot.visible = false;
+        forwardSa1Drone.visible = true;
 
         const flightT = clamp01((p - 0.16) / 0.84);
         // Continuous downrange travel from Z = -40 to Z = -1410
@@ -1337,33 +1408,63 @@ export default function AviarsBattlefieldViewer() {
 
         camera.position.set(camX, camY, camZ);
 
-        // Smoothly orient gimbal lookAt toward the active target
+        // Smoothly slew camera gimbal lookAt & weapon aim point from current target to next target
         const activeTargetObj = target3DObjects[activeTargetIdx];
-        const lookPt = new THREE.Vector3(
+        const desiredLookPt = new THREE.Vector3(
           activeTargetObj.position.x * 0.55,
           activeTargetObj.position.y * 0.75,
           activeTargetObj.position.z
         );
-        camera.lookAt(lookPt);
+        const desiredAimPt = activeTargetObj.position.clone().add(new THREE.Vector3(0, 6, 0));
 
-        // Draw Laser Designator & Ballistic Trajectory Arc from Ventral Bay to Active Target
+        const prevLookX = smoothedLookPt.x;
+        smoothedLookPt.lerp(desiredLookPt, 0.075);
+        smoothedAimPt.lerp(desiredAimPt, 0.085);
+
+        // Aerodynamic camera roll when gimbal pans across targets
+        const panRateX = smoothedLookPt.x - prevLookX;
+        const targetCamRoll = THREE.MathUtils.clamp(-panRateX * 0.045, -0.15, 0.15);
+        smoothedCamRoll += (targetCamRoll - smoothedCamRoll) * 0.1;
+        camera.up.set(Math.sin(smoothedCamRoll), Math.cos(smoothedCamRoll), 0);
+        camera.lookAt(smoothedLookPt);
+
+        // Position & smoothly bank the 3D Forward SA-1 Interceptor Drone along the curve toward smoothedAimPt
         const droneBayOrigin = new THREE.Vector3(camX, camY - 6, camZ - 10);
-        const targetAimPt = activeTargetObj.position.clone().add(new THREE.Vector3(0, 6, 0));
+        const desiredFwdDrone = new THREE.Vector3(
+          THREE.MathUtils.lerp(camX, smoothedAimPt.x, 0.34),
+          THREE.MathUtils.lerp(camY - 3.5, smoothedAimPt.y + 8, 0.34) +
+            Math.sin(elapsed * 2.4) * 1.1,
+          THREE.MathUtils.lerp(camZ - 14, smoothedAimPt.z, 0.34)
+        );
+        const prevDroneX = smoothedForwardDronePos.x;
+        smoothedForwardDronePos.lerp(desiredFwdDrone, 0.11);
 
+        forwardSa1Drone.position.copy(smoothedForwardDronePos);
+        forwardSa1Drone.lookAt(smoothedAimPt);
+        const desiredBank = THREE.MathUtils.clamp(
+          (smoothedForwardDronePos.x - prevDroneX) * -0.26,
+          -0.62,
+          0.62
+        );
+        smoothedDroneBank += (desiredBank - smoothedDroneBank) * 0.14;
+        forwardSa1Drone.rotateZ(smoothedDroneBank);
+
+        // Draw Smoothly Sweeping Laser Designator & Ballistic Trajectory Arc from Forward Drone to smoothedAimPt
         laserLine.visible = true;
         laserMat.color.setHex(accentHex);
-        laserGeom.setFromPoints([droneBayOrigin, targetAimPt]);
+        laserGeom.setFromPoints([smoothedForwardDronePos, smoothedAimPt]);
 
         ballisticArc.visible = true;
         ballisticMat.color.setHex(accentHex);
         const curvePts: THREE.Vector3[] = [];
-        for (let i = 0; i <= 24; i++) {
-          const u = i / 24;
-          const bx = THREE.MathUtils.lerp(droneBayOrigin.x, targetAimPt.x, u);
-          const bz = THREE.MathUtils.lerp(droneBayOrigin.z, targetAimPt.z, u);
-          const arcLift = Math.sin(u * Math.PI) * (isAttack ? 16 : 6);
-          const by = THREE.MathUtils.lerp(droneBayOrigin.y, targetAimPt.y, u) + arcLift;
-          curvePts.push(new THREE.Vector3(bx, by, bz));
+        for (let i = 0; i <= 28; i++) {
+          const u = i / 28;
+          // Smooth two-segment curve: Camera Bay -> Forward Banking SA-1 Drone -> Target Aim Point
+          const pA = new THREE.Vector3().lerpVectors(droneBayOrigin, smoothedForwardDronePos, u);
+          const pB = new THREE.Vector3().lerpVectors(smoothedForwardDronePos, smoothedAimPt, u);
+          const pt = new THREE.Vector3().lerpVectors(pA, pB, u);
+          pt.y += Math.sin(u * Math.PI) * (isAttack ? 12 : 5);
+          curvePts.push(pt);
         }
         ballisticGeom.setFromPoints(curvePts);
 
@@ -1384,20 +1485,20 @@ export default function AviarsBattlefieldViewer() {
           const impactDuration = 1.15;
 
           if (dtStrike >= 0 && dtStrike <= flightDuration) {
-            // Munition inbound along parabolic ballistic curve
+            // Munition inbound from Forward SA-1 Interceptor along parabolic ballistic curve to smoothedAimPt
             const u = clamp01(dtStrike / flightDuration);
             const uNext = clamp01((dtStrike + 0.04) / flightDuration);
-            const mx = THREE.MathUtils.lerp(droneBayOrigin.x, targetAimPt.x, u);
-            const mz = THREE.MathUtils.lerp(droneBayOrigin.z, targetAimPt.z, u);
+            const mx = THREE.MathUtils.lerp(smoothedForwardDronePos.x, smoothedAimPt.x, u);
+            const mz = THREE.MathUtils.lerp(smoothedForwardDronePos.z, smoothedAimPt.z, u);
             const my =
-              THREE.MathUtils.lerp(droneBayOrigin.y, targetAimPt.y, u) +
-              Math.sin(u * Math.PI) * 16;
+              THREE.MathUtils.lerp(smoothedForwardDronePos.y, smoothedAimPt.y, u) +
+              Math.sin(u * Math.PI) * 14;
 
-            const nx = THREE.MathUtils.lerp(droneBayOrigin.x, targetAimPt.x, uNext);
-            const nz = THREE.MathUtils.lerp(droneBayOrigin.z, targetAimPt.z, uNext);
+            const nx = THREE.MathUtils.lerp(smoothedForwardDronePos.x, smoothedAimPt.x, uNext);
+            const nz = THREE.MathUtils.lerp(smoothedForwardDronePos.z, smoothedAimPt.z, uNext);
             const ny =
-              THREE.MathUtils.lerp(droneBayOrigin.y, targetAimPt.y, uNext) +
-              Math.sin(uNext * Math.PI) * 16;
+              THREE.MathUtils.lerp(smoothedForwardDronePos.y, smoothedAimPt.y, uNext) +
+              Math.sin(uNext * Math.PI) * 14;
 
             munitionGroup.visible = true;
             munitionGroup.position.set(mx, my, mz);
@@ -1406,18 +1507,18 @@ export default function AviarsBattlefieldViewer() {
             impactRingMesh.visible = false;
             impactFlashMesh.visible = false;
           } else if (dtStrike > flightDuration && dtStrike <= flightDuration + impactDuration) {
-            // Kinetic Detonation Shockwave at Target
+            // Kinetic Detonation Shockwave at smoothedAimPt
             const k = clamp01((dtStrike - flightDuration) / impactDuration);
             munitionGroup.visible = false;
 
             impactRingMesh.visible = true;
-            impactRingMesh.position.copy(targetAimPt);
+            impactRingMesh.position.copy(smoothedAimPt);
             const ringScale = 1.0 + k * 14.5;
             impactRingMesh.scale.set(ringScale, ringScale, ringScale);
             impactRingMat.opacity = (1.0 - k) * 0.92;
 
             impactFlashMesh.visible = true;
-            impactFlashMesh.position.copy(targetAimPt);
+            impactFlashMesh.position.copy(smoothedAimPt);
             const flashScale = 0.6 + Math.sin(k * Math.PI) * 3.2;
             impactFlashMesh.scale.set(flashScale, flashScale, flashScale);
             impactFlashMat.opacity = (1.0 - k) * 0.85;
@@ -1437,10 +1538,25 @@ export default function AviarsBattlefieldViewer() {
       renderer.render(scene, camera);
 
       // Sync 2D Projected Target Lock Boxes & HUD Telemetry (~30 FPS)
+      // Use smoothedAimPt for the Primary Locked Target so the 2D HUD Reticle glides smoothly across the screen!
       if (elapsed - lastHudSync > 0.033) {
         lastHudSync = elapsed;
 
+        const smoothAimProj = projectWorldToScreen(smoothedAimPt, w, h);
+        const smoothAimDist = Math.max(18, Math.round(camera.position.distanceTo(smoothedAimPt) * 1.3));
+
         const nextProjected: ProjectedTarget[] = MISSION_TARGETS.map((tSpec, idx) => {
+          const isPrimary = p >= 0.16 && idx === activeTargetIdx;
+          if (isPrimary) {
+            return {
+              ...tSpec,
+              screenX: smoothAimProj.x,
+              screenY: smoothAimProj.y,
+              inFront: smoothAimProj.inFront,
+              distanceMeters: smoothAimDist,
+              isPrimaryLock: true,
+            };
+          }
           const worldCenter = target3DObjects[idx].position.clone().add(new THREE.Vector3(0, 7, 0));
           const proj = projectWorldToScreen(worldCenter, w, h);
           const dist = Math.max(18, Math.round(camera.position.distanceTo(worldCenter) * 1.3));
@@ -1450,7 +1566,7 @@ export default function AviarsBattlefieldViewer() {
             screenY: proj.y,
             inFront: proj.inFront,
             distanceMeters: dist,
-            isPrimaryLock: p >= 0.16 && idx === activeTargetIdx,
+            isPrimaryLock: false,
           };
         });
         setProjectedTargets(nextProjected);
@@ -1488,17 +1604,12 @@ export default function AviarsBattlefieldViewer() {
               visible: mProj.inFront,
             });
           } else if (dtStrike > 1.15 && dtStrike <= 2.9) {
-            const tProj = projectWorldToScreen(
-              target3DObjects[activeTargetIdx].position.clone().add(new THREE.Vector3(0, 7, 0)),
-              w,
-              h
-            );
             setStrikeHud({
               status: 'impact',
               progress: clamp01((dtStrike - 1.15) / 1.75),
-              screenX: tProj.x,
-              screenY: tProj.y,
-              visible: tProj.inFront,
+              screenX: smoothAimProj.x,
+              screenY: smoothAimProj.y,
+              visible: smoothAimProj.inFront,
             });
           } else {
             setStrikeHud((prev) => (prev.status === 'idle' ? prev : { ...prev, status: 'idle', visible: false }));

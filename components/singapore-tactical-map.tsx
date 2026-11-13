@@ -855,7 +855,7 @@ export default function SingaporeTacticalMap() {
     scene.add(networkLine);
 
     // =========================================================================
-    // 4. 4 HOSTILE TARGET MODELS + 2 SCRAMBLING SA-1 DRONES + TRAJECTORY ARCS
+    // 4. 4 HOSTILE TARGET MODELS + PERSISTENT CORRIDORS + SMOOTH BANKING DRONES
     // =========================================================================
     const missionTargetGroups: { mesh: THREE.Group; worldPos: THREE.Vector3 }[] =
       INTERCEPT_MISSIONS.map((m) => {
@@ -869,13 +869,53 @@ export default function SingaporeTacticalMap() {
         };
       });
 
+    // Evaluate a 3D parabolic flight trajectory between Base and Target at u in [0, 1]
+    const evalTrajectoryPoint = (
+      origin: THREE.Vector3,
+      dest: THREE.Vector3,
+      u: number,
+      cruiseApex: number
+    ): THREE.Vector3 => {
+      const x = THREE.MathUtils.lerp(origin.x, dest.x, u);
+      const z = THREE.MathUtils.lerp(origin.z, dest.z, u);
+      const baseAlt = THREE.MathUtils.lerp(origin.y, dest.y + 12, u);
+      const arc = Math.sin(u * Math.PI) * cruiseApex;
+      return new THREE.Vector3(x, baseAlt + arc, z);
+    };
+
+    // Persistent Island-Wide Tactical Trajectory Corridors for all 4 Missions
+    const sectorCorridorLines: { primary: THREE.Line; secondary: THREE.Line }[] =
+      INTERCEPT_MISSIONS.map((m, idx) => {
+        const b1 = base3DNodes.find((b) => b.spec.id === m.primaryBaseId) || base3DNodes[0];
+        const b2 = base3DNodes.find((b) => b.spec.id === m.secondaryBaseId) || base3DNodes[1];
+        const tPos = missionTargetGroups[idx].worldPos;
+        const pts1: THREE.Vector3[] = [];
+        const pts2: THREE.Vector3[] = [];
+        for (let i = 0; i <= 28; i++) {
+          const u = i / 28;
+          pts1.push(evalTrajectoryPoint(b1.worldPos, tPos, u, 38));
+          pts2.push(evalTrajectoryPoint(b2.worldPos, tPos, u, 30));
+        }
+        const l1 = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts1),
+          new THREE.LineBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.18 })
+        );
+        const l2 = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts2),
+          new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.14 })
+        );
+        scene.add(l1);
+        scene.add(l2);
+        return { primary: l1, secondary: l2 };
+      });
+
     // Primary & Wingman Scrambling SA-1 Drones
     const primarySa1Drone = buildMiniSa1DroneMesh();
     const secondarySa1Drone = buildMiniSa1DroneMesh();
     scene.add(primarySa1Drone);
     scene.add(secondarySa1Drone);
 
-    // Glowing 3D Flight Trajectory Arcs from Base #1 and Base #2 to Target
+    // Active Smoothly Morphing & Progressively Drawn 3D Flight Trajectory Arcs
     const trajMatPrimary = new THREE.LineBasicMaterial({
       color: 0x00ff41,
       transparent: true,
@@ -888,11 +928,27 @@ export default function SingaporeTacticalMap() {
     const trajMatSecondary = new THREE.LineBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
     });
     const trajGeomSecondary = new THREE.BufferGeometry();
     const trajLineSecondary = new THREE.Line(trajGeomSecondary, trajMatSecondary);
     scene.add(trajLineSecondary);
+
+    // 3D Kinetic Micro-Munition Dart (Streaks from SA-1 Drone into Target)
+    const munitionDartGroup = new THREE.Group();
+    munitionDartGroup.visible = false;
+    const dartConeG = new THREE.ConeGeometry(1.1, 5.2, 10);
+    dartConeG.rotateX(Math.PI / 2);
+    munitionDartGroup.add(
+      new THREE.Mesh(dartConeG, new THREE.MeshBasicMaterial({ color: 0xffffff }))
+    );
+    munitionDartGroup.add(
+      new THREE.Mesh(
+        new THREE.SphereGeometry(2.1, 10, 10),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.9 })
+      )
+    );
+    scene.add(munitionDartGroup);
 
     // Terminal Laser Lock Beam & Kinetic Takedown Shockwave at Target
     const strikeLaserMat = new THREE.LineBasicMaterial({
@@ -925,13 +981,26 @@ export default function SingaporeTacticalMap() {
     scene.add(explosionCoreMesh);
 
     // =========================================================================
-    // 5. ANIMATION LOOP — SCROLL CAMERA + DRONE SCRAMBLE TRAJECTORY + TAKEDOWN
+    // 5. ANIMATION LOOP — CONTINUOUS SMOOTH CAMERA, BANKING DRONE & TAKEDOWN
     // =========================================================================
     let isDisposed = false;
     let animId = 0;
     let lastHudSync = 0;
     let missionCycleStart = 0;
     const clock = new THREE.Clock();
+
+    // Persistent smoothed vectors so transitions between missions NEVER cut or snap
+    const firstBase1 =
+      base3DNodes.find((b) => b.spec.id === INTERCEPT_MISSIONS[0].primaryBaseId) || base3DNodes[0];
+    const firstBase2 =
+      base3DNodes.find((b) => b.spec.id === INTERCEPT_MISSIONS[0].secondaryBaseId) || base3DNodes[1];
+    const smoothedOrigin1 = firstBase1.worldPos.clone();
+    const smoothedOrigin2 = firstBase2.worldPos.clone();
+    const smoothedTargetPos = missionTargetGroups[0].worldPos.clone();
+    const smoothedLookAt = new THREE.Vector3(0, 0, 20);
+    const smoothedDrone1Pos = firstBase1.worldPos.clone();
+    const smoothedDrone2Pos = firstBase2.worldPos.clone();
+    let smoothedCamRoll = 0;
 
     const projectToScreen = (worldVec: THREE.Vector3, w: number, h: number) => {
       const v = worldVec.clone().project(camera);
@@ -942,26 +1011,12 @@ export default function SingaporeTacticalMap() {
       };
     };
 
-    // Evaluate a 3D parabolic flight trajectory between Base and Target at u in [0, 1]
-    const evalTrajectoryPoint = (
-      origin: THREE.Vector3,
-      dest: THREE.Vector3,
-      u: number,
-      cruiseApex: number
-    ): THREE.Vector3 => {
-      const x = THREE.MathUtils.lerp(origin.x, dest.x, u);
-      const z = THREE.MathUtils.lerp(origin.z, dest.z, u);
-      const baseAlt = THREE.MathUtils.lerp(origin.y, dest.y + 12, u);
-      const arc = Math.sin(u * Math.PI) * cruiseApex;
-      return new THREE.Vector3(x, baseAlt + arc, z);
-    };
-
     const animate = () => {
       if (isDisposed) return;
       animId = requestAnimationFrame(animate);
 
       const elapsed = clock.getElapsedTime();
-      smoothedProgressRef.current += (progressRef.current - smoothedProgressRef.current) * 0.08;
+      smoothedProgressRef.current += (progressRef.current - smoothedProgressRef.current) * 0.075;
       const p = smoothedProgressRef.current;
 
       // Rotate all 7 base radars & pulse coastal defense rings
@@ -978,18 +1033,39 @@ export default function SingaporeTacticalMap() {
         tg.mesh.position.x = tg.worldPos.x + Math.sin(elapsed * 0.9 + idx) * 3.5;
       });
 
-      // Determine active intercept mission index (0..3)
+      // Determine active intercept mission index (0..3) and local scroll progress within mission
       const activeMissionIdx =
         p < 0.37 ? 0 : p < 0.58 ? 1 : p < 0.79 ? 2 : 3;
       const activeMission = INTERCEPT_MISSIONS[activeMissionIdx];
       const activeTarget = missionTargetGroups[activeMissionIdx];
+
+      // Smoothly cross-fade persistent corridor lines so active sector glows while others stay visible
+      sectorCorridorLines.forEach((corridor, idx) => {
+        const targetOp1 = idx === activeMissionIdx ? 0.38 : 0.14;
+        const targetOp2 = idx === activeMissionIdx ? 0.28 : 0.1;
+        const m1 = corridor.primary.material as THREE.LineBasicMaterial;
+        const m2 = corridor.secondary.material as THREE.LineBasicMaterial;
+        m1.opacity += (targetOp1 - m1.opacity) * 0.08;
+        m2.opacity += (targetOp2 - m2.opacity) * 0.08;
+      });
 
       const primaryBase =
         base3DNodes.find((b) => b.spec.id === activeMission.primaryBaseId) || base3DNodes[0];
       const secondaryBase =
         base3DNodes.find((b) => b.spec.id === activeMission.secondaryBaseId) || base3DNodes[1];
 
-      // Reset scramble animation timer when switching missions or clicking Re-Scramble
+      const rawTargetPos = new THREE.Vector3(
+        activeTarget.mesh.position.x,
+        activeTarget.worldPos.y,
+        activeTarget.mesh.position.z
+      );
+
+      // Smoothly morph trajectory origins & target position so switching sectors sweeps smoothly
+      smoothedOrigin1.lerp(primaryBase.worldPos, 0.08);
+      smoothedOrigin2.lerp(secondaryBase.worldPos, 0.08);
+      smoothedTargetPos.lerp(rawTargetPos, 0.085);
+
+      // Reset scramble cycle only when clicking Re-Launch or starting fresh, keeping transitions fluid
       if (lastMissionIdxRef.current !== activeMissionIdx || scrambleResetClockRef.current === -2) {
         lastMissionIdxRef.current = activeMissionIdx;
         missionCycleStart = elapsed;
@@ -1002,117 +1078,153 @@ export default function SingaporeTacticalMap() {
       const portraitZoom = aspect < 1.0 ? Math.min(1.55, 0.95 / Math.max(aspect, 0.48)) : 1.0;
 
       // =======================================================================
-      // CAMERA POSITIONING: ISLAND OVERWATCH (0-16%) vs TACTICAL SECTOR ZOOM
+      // CAMERA POSITIONING: SMOOTH GLIDE + AERODYNAMIC ROLL (ZERO CUTS)
       // =======================================================================
+      const prevCamX = camera.position.x;
       if (p < 0.16 || cameraModeRef.current === 'island') {
         const targetCamPos = new THREE.Vector3(
           0,
           310 * portraitZoom,
           375 * portraitZoom
         );
-        camera.position.lerp(targetCamPos, 0.06);
-        const lookTarget = new THREE.Vector3(0, 0, 20);
-        camera.lookAt(lookTarget);
+        camera.position.lerp(targetCamPos, 0.065);
+        const desiredLook = new THREE.Vector3(0, 0, 20);
+        smoothedLookAt.lerp(desiredLook, 0.075);
       } else {
-        // Swoop camera dynamically to frame both the scrambling coastal/military bases AND the offshore target
-        const midX = (primaryBase.worldPos.x + activeTarget.worldPos.x) * 0.5;
-        const midZ = (primaryBase.worldPos.z + activeTarget.worldPos.z) * 0.5;
+        // Swoop camera smoothly to frame both the scrambling coastal/military bases AND the offshore target
+        const midX = (smoothedOrigin1.x + smoothedTargetPos.x) * 0.5;
+        const midZ = (smoothedOrigin1.z + smoothedTargetPos.z) * 0.5;
         const desiredCam = new THREE.Vector3(
           midX * 0.65 + activeMission.cameraOffset[0] * 0.45,
           activeMission.cameraOffset[1] * portraitZoom,
           midZ + 185 * portraitZoom
         );
-        camera.position.lerp(desiredCam, 0.06);
-        camera.lookAt(midX, 4, midZ + 12);
+        camera.position.lerp(desiredCam, 0.065);
+        const desiredLook = new THREE.Vector3(midX, 4, midZ + 12);
+        smoothedLookAt.lerp(desiredLook, 0.075);
       }
 
-      // =======================================================================
-      // DRONE SCRAMBLE TRAJECTORY & TARGET TAKEDOWN ANIMATION (4.4s Loop)
-      // =======================================================================
-      const targetPos = new THREE.Vector3(
-        activeTarget.mesh.position.x,
-        activeTarget.worldPos.y,
-        activeTarget.mesh.position.z
-      );
+      // Subtle aerodynamic camera roll when panning between coastal sectors
+      const camVelX = camera.position.x - prevCamX;
+      const targetRoll = THREE.MathUtils.clamp(-camVelX * 0.012, -0.14, 0.14);
+      smoothedCamRoll += (targetRoll - smoothedCamRoll) * 0.1;
+      camera.up.set(Math.sin(smoothedCamRoll), Math.cos(smoothedCamRoll), 0);
+      camera.lookAt(smoothedLookAt);
 
-      // Build full 3D trajectory curves from Primary Base & Secondary Base to Target
-      const primaryCurvePts: THREE.Vector3[] = [];
-      const secondaryCurvePts: THREE.Vector3[] = [];
-      for (let i = 0; i <= 32; i++) {
-        const u = i / 32;
-        primaryCurvePts.push(evalTrajectoryPoint(primaryBase.worldPos, targetPos, u, 38));
-        secondaryCurvePts.push(evalTrajectoryPoint(secondaryBase.worldPos, targetPos, u, 30));
-      }
-      trajGeomPrimary.setFromPoints(primaryCurvePts);
-      trajGeomSecondary.setFromPoints(secondaryCurvePts);
-
-      // Cycle time: 0.0s -> 2.4s (Drone Scrambling along Trajectory), 2.4s -> 3.2s (Laser Lock & Strike), 3.2s -> 4.4s (Detonation Shockwave)
-      const cycleDuration = 4.4;
+      // =======================================================================
+      // SMOOTH DRONE SCRAMBLE, PROGRESSIVE TRAIL & KINETIC DART TAKEDOWN
+      // =======================================================================
+      // Cycle time: 0.0s -> 2.4s (Drone Scrambling along Trajectory),
+      //             2.4s -> 3.1s (AGM-M1 Dart Launch down Laser Beam),
+      //             3.1s -> 4.5s (Detonation Shockwave & Fireball)
+      const cycleDuration = 4.5;
       const cycleTime = (elapsed - missionCycleStart) % cycleDuration;
       const isInterceptMode = postureRef.current === 'intercept';
 
       let hudPhase: 'scrambling' | 'locking' | 'impact' = 'scrambling';
       let hudProgress = 0;
 
-      if (cycleTime < 2.6) {
-        // Phase A: SA-1 Drones scrambling from Coastal Hive & Military Camp toward Target
+      const u1 = cycleTime < 2.4 ? smoothstep(0.0, 2.4, cycleTime) : 1.0;
+      const u2 = cycleTime < 2.4 ? smoothstep(0.12, 2.4, cycleTime) : 1.0;
+
+      const desiredD1 = evalTrajectoryPoint(smoothedOrigin1, smoothedTargetPos, u1 * 0.86, 38);
+      const desiredD1Look = evalTrajectoryPoint(
+        smoothedOrigin1,
+        smoothedTargetPos,
+        Math.min(1, u1 * 0.86 + 0.06),
+        38
+      );
+      const desiredD2 = evalTrajectoryPoint(smoothedOrigin2, smoothedTargetPos, u2 * 0.8, 30);
+      const desiredD2Look = evalTrajectoryPoint(
+        smoothedOrigin2,
+        smoothedTargetPos,
+        Math.min(1, u2 * 0.8 + 0.06),
+        30
+      );
+
+      // Smoothly glide the 3D SA-1 Drones so they physically bank & fly across sectors instead of cutting
+      const prevD1X = smoothedDrone1Pos.x;
+      smoothedDrone1Pos.lerp(desiredD1, 0.14);
+      smoothedDrone2Pos.lerp(desiredD2, 0.14);
+
+      primarySa1Drone.position.copy(smoothedDrone1Pos);
+      primarySa1Drone.lookAt(desiredD1Look);
+      // Add realistic bank angle when turning toward next target
+      const droneTurnRate = THREE.MathUtils.clamp((smoothedDrone1Pos.x - prevD1X) * -0.18, -0.55, 0.55);
+      primarySa1Drone.rotateZ(droneTurnRate);
+
+      secondarySa1Drone.position.copy(smoothedDrone2Pos);
+      secondarySa1Drone.lookAt(desiredD2Look);
+      secondarySa1Drone.rotateZ(droneTurnRate * 0.8);
+
+      // Progressively draw the active glowing 3D trajectory arcs from Base up to the Drone's nose
+      // (and full path during terminal lock/strike)
+      const trailLimit1 = Math.max(0.12, u1 * 0.88);
+      const trailLimit2 = Math.max(0.12, u2 * 0.82);
+      const primaryCurvePts: THREE.Vector3[] = [];
+      const secondaryCurvePts: THREE.Vector3[] = [];
+      for (let i = 0; i <= 32; i++) {
+        const frac = i / 32;
+        primaryCurvePts.push(
+          evalTrajectoryPoint(smoothedOrigin1, smoothedTargetPos, frac * trailLimit1, 38)
+        );
+        secondaryCurvePts.push(
+          evalTrajectoryPoint(smoothedOrigin2, smoothedTargetPos, frac * trailLimit2, 30)
+        );
+      }
+      trajGeomPrimary.setFromPoints(primaryCurvePts);
+      trajGeomSecondary.setFromPoints(secondaryCurvePts);
+
+      if (cycleTime < 2.4) {
+        // Phase A: SA-1 Drones scrambling smoothly toward Target
         hudPhase = 'scrambling';
-        const u1 = smoothstep(0.0, 2.6, cycleTime);
-        const u2 = smoothstep(0.15, 2.6, cycleTime);
         hudProgress = u1;
 
-        const d1Pos = evalTrajectoryPoint(primaryBase.worldPos, targetPos, u1 * 0.88, 38);
-        const d1Next = evalTrajectoryPoint(
-          primaryBase.worldPos,
-          targetPos,
-          Math.min(1, u1 * 0.88 + 0.03),
-          38
-        );
-        primarySa1Drone.position.copy(d1Pos);
-        primarySa1Drone.lookAt(d1Next);
-
-        const d2Pos = evalTrajectoryPoint(secondaryBase.worldPos, targetPos, u2 * 0.82, 30);
-        const d2Next = evalTrajectoryPoint(
-          secondaryBase.worldPos,
-          targetPos,
-          Math.min(1, u2 * 0.82 + 0.03),
-          30
-        );
-        secondarySa1Drone.position.copy(d2Pos);
-        secondarySa1Drone.lookAt(d2Next);
-
-        strikeLaserLine.visible = u1 > 0.72;
+        strikeLaserLine.visible = u1 > 0.68;
         if (strikeLaserLine.visible) {
-          strikeLaserGeom.setFromPoints([d1Pos, targetPos]);
+          strikeLaserMat.color.setHex(isInterceptMode ? 0xef4444 : 0x00ff41);
+          strikeLaserGeom.setFromPoints([smoothedDrone1Pos, smoothedTargetPos]);
         }
+        munitionDartGroup.visible = false;
+        shockwaveMesh.visible = false;
+        explosionCoreMesh.visible = false;
+      } else if (cycleTime < 3.1 && isInterceptMode) {
+        // Phase B1: AGM-M1 Kinetic Micro-Munition Dart streaks from SA-1 Drone into Target
+        const dartT = clamp01((cycleTime - 2.4) / 0.7);
+        hudPhase = 'locking';
+        hudProgress = dartT;
+
+        strikeLaserLine.visible = true;
+        strikeLaserMat.color.setHex(0xef4444);
+        strikeLaserGeom.setFromPoints([smoothedDrone1Pos, smoothedTargetPos]);
+
+        munitionDartGroup.visible = true;
+        const dartPos = new THREE.Vector3().lerpVectors(smoothedDrone1Pos, smoothedTargetPos, dartT);
+        munitionDartGroup.position.copy(dartPos);
+        munitionDartGroup.lookAt(smoothedTargetPos);
+
         shockwaveMesh.visible = false;
         explosionCoreMesh.visible = false;
       } else {
-        // Phase B: SA-1 Drones on station above target — Firing Kinetic Takedown
-        const impactT = clamp01((cycleTime - 2.6) / 1.8);
+        // Phase B2: Kinetic Detonation Shockwave & Fireball at Target
+        const impactT = clamp01((cycleTime - (isInterceptMode ? 3.1 : 2.4)) / 1.4);
         hudPhase = isInterceptMode ? 'impact' : 'locking';
         hudProgress = impactT;
 
-        const d1Hold = evalTrajectoryPoint(primaryBase.worldPos, targetPos, 0.88, 38);
-        const d2Hold = evalTrajectoryPoint(secondaryBase.worldPos, targetPos, 0.82, 30);
-        primarySa1Drone.position.copy(d1Hold);
-        primarySa1Drone.lookAt(targetPos);
-        secondarySa1Drone.position.copy(d2Hold);
-        secondarySa1Drone.lookAt(targetPos);
-
+        munitionDartGroup.visible = false;
         strikeLaserLine.visible = true;
         strikeLaserMat.color.setHex(isInterceptMode ? 0xef4444 : 0x00ff41);
-        strikeLaserGeom.setFromPoints([d1Hold, targetPos]);
+        strikeLaserGeom.setFromPoints([smoothedDrone1Pos, smoothedTargetPos]);
 
         if (isInterceptMode) {
           shockwaveMesh.visible = true;
-          shockwaveMesh.position.set(targetPos.x, 1.2, targetPos.z);
+          shockwaveMesh.position.set(smoothedTargetPos.x, 1.2, smoothedTargetPos.z);
           const sScale = 1.0 + impactT * 11.5;
           shockwaveMesh.scale.set(sScale, sScale, sScale);
           shockwaveMat.opacity = (1.0 - impactT) * 0.9;
 
           explosionCoreMesh.visible = true;
-          explosionCoreMesh.position.copy(targetPos);
+          explosionCoreMesh.position.copy(smoothedTargetPos);
           const cScale = 0.5 + Math.sin(impactT * Math.PI) * 2.6;
           explosionCoreMesh.scale.set(cScale, cScale, cScale);
           explosionCoreMat.opacity = (1.0 - impactT) * 0.85;
@@ -1143,8 +1255,8 @@ export default function SingaporeTacticalMap() {
         });
         setProjectedBases(nextBases);
 
-        const tProj = projectToScreen(targetPos, w, h);
-        const dProj = projectToScreen(primarySa1Drone.position, w, h);
+        const tProj = projectToScreen(smoothedTargetPos, w, h);
+        const dProj = projectToScreen(smoothedDrone1Pos, w, h);
         setTargetHud({
           x: tProj.x,
           y: tProj.y,
