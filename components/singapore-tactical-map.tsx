@@ -356,6 +356,134 @@ const INTERCEPT_MISSIONS: InterceptMissionSpec[] = [
   },
 ];
 
+type SandboxThreatType = InterceptMissionSpec['targetType'];
+
+interface SandboxThreatPreset {
+  type: SandboxThreatType;
+  shortLabel: string;
+  targetName: string;
+  targetAltY: number;
+  threatTelemetry: string;
+  takedownMechanics: string;
+  subsystemBadge: string;
+}
+
+const SANDBOX_THREAT_PRESETS: Record<SandboxThreatType, SandboxThreatPreset> = {
+  'maritime-usv': {
+    type: 'maritime-usv',
+    shortLabel: 'Rogue USV',
+    targetName: 'User-Deployed Explosive USV & Dark Vessel',
+    targetAltY: 1.5,
+    threatTelemetry: 'SANDBOX THREAT // AIS OFF // 36 KT SURFACE VECTOR',
+    takedownMechanics:
+      'A.V.I.A.R.S. locks onto Kelvin-wake and LWIR thermal signatures at 120 FPS, guiding the SA-1 interceptor to neutralize the rogue USV before coastal breach.',
+    subsystemBadge: 'Nearest Coastal Hive → 120 FPS SAR/LWIR Lock → AGM-M1 Strike',
+  },
+  'air-swarm': {
+    type: 'air-swarm',
+    shortLabel: 'Drone Swarm',
+    targetName: 'User-Deployed Hostile Loitering Munition Swarm',
+    targetAltY: 24.0,
+    threatTelemetry: 'SANDBOX THREAT // ALT 420M // 16× MICRO-DOPPLER LOCKS',
+    takedownMechanics:
+      '3× gold-dichroic quartz solid-state LiDAR windows + micro-Doppler radar isolate every hostile rotor in all-weather clutter for mid-air swarm interdiction.',
+    subsystemBadge: 'Nearest Airbase/Hive → 3× Quartz LiDAR Ring → Mid-Air Swarm Takedown',
+  },
+  'ew-vessel': {
+    type: 'ew-vessel',
+    shortLabel: 'EW Jammer',
+    targetName: 'User-Deployed Offshore GNSS Spoofer & RF Jammer',
+    targetAltY: 2.0,
+    threatTelemetry: 'SANDBOX THREAT // 85 dBm RF JAMMING // HOME-ON-JAM LOCKED',
+    takedownMechanics:
+      'Dual 3.0 mm Stereo VIO maintains sub-centimeter navigation in zero-GPS conditions while passive Home-On-Jam triangulation guides the strike directly onto the emitter mast.',
+    subsystemBadge: 'Nearest Base Scramble → Stereo VIO + Home-On-Jam Strike',
+  },
+  'fast-attack': {
+    type: 'fast-attack',
+    shortLabel: 'Fast Attack',
+    targetName: 'User-Deployed 46-Knot Littoral Fast Attack Craft',
+    targetAltY: 1.5,
+    threatTelemetry: 'SANDBOX THREAT // 46 KT HIGH-SPEED DASH // < 4.2 MS TPU LOCK',
+    takedownMechanics:
+      '100% air-gapped onboard neuromorphic TPU computes wave-crest lead compensation in under 5 milliseconds, executing a terminal kinetic strike.',
+    subsystemBadge: 'Nearest Coastal Hive → < 5 ms Edge TPU → Terminal Kinetic Strike',
+  },
+};
+
+interface CustomThreatInstance {
+  id: number;
+  targetType: SandboxThreatType;
+  worldX: number;
+  worldZ: number;
+  lon: number;
+  lat: number;
+  targetAltY: number;
+  primaryBaseId: string;
+  secondaryBaseId: string;
+  primaryDistKm: string;
+  secondaryDistKm: string;
+  distanceKm: string;
+  interceptTimeSec: string;
+  code: string;
+  sectorTitle: string;
+  targetName: string;
+  threatTelemetry: string;
+  scrambleSummary: string;
+  takedownMechanics: string;
+  subsystemBadge: string;
+}
+
+function buildCustomThreatAtXZ(
+  rawX: number,
+  rawZ: number,
+  type: SandboxThreatType,
+  id: number
+): CustomThreatInstance {
+  const worldX = Math.max(-295, Math.min(295, rawX));
+  const worldZ = Math.max(-185, Math.min(210, rawZ));
+  const lon = 103.825 + worldX / 1150;
+  const lat = 1.345 - worldZ / 1150;
+
+  // Rank all 7 Singapore Coastal Hives & Military Camps by proximity to the dropped threat
+  const rankedBases = [...SINGAPORE_BASES]
+    .map((base) => {
+      const [bx, bz] = lonLatToXZ(base.lon, base.lat);
+      const distScene = Math.hypot(bx - worldX, bz - worldZ);
+      const distKm = Math.max(0.8, (distScene / 1150) * 111.32);
+      return { base, distScene, distKm };
+    })
+    .sort((a, b) => a.distScene - b.distScene);
+
+  const primary = rankedBases[0];
+  const secondary = rankedBases[1];
+  const preset = SANDBOX_THREAT_PRESETS[type];
+  const interceptSec = (primary.distKm * 2.9 + 5.2).toFixed(1) + ' SEC';
+
+  return {
+    id,
+    targetType: type,
+    worldX,
+    worldZ,
+    lon,
+    lat,
+    targetAltY: preset.targetAltY,
+    primaryBaseId: primary.base.id,
+    secondaryBaseId: secondary.base.id,
+    primaryDistKm: `${primary.distKm.toFixed(1)} KM`,
+    secondaryDistKm: `${secondary.distKm.toFixed(1)} KM`,
+    distanceKm: `${primary.distKm.toFixed(1)} KM FROM ${primary.base.code.split('//')[1]?.trim() || 'BASE'}`,
+    interceptTimeSec: interceptSec,
+    code: 'SANDBOX INTERCEPT // AUTO-SCRAMBLE',
+    sectorTitle: `Custom Coordinates: ${lat.toFixed(3)}° N, ${lon.toFixed(3)}° E`,
+    targetName: preset.targetName,
+    threatTelemetry: preset.threatTelemetry,
+    scrambleSummary: `Autonomous C2 mesh detected a hostile drop at ${lat.toFixed(3)}° N, ${lon.toFixed(3)}° E and automatically scrambled the two closest units: ${primary.base.name} (${primary.distKm.toFixed(1)} km) and ${secondary.base.name} (${secondary.distKm.toFixed(1)} km).`,
+    takedownMechanics: preset.takedownMechanics,
+    subsystemBadge: preset.subsystemBadge,
+  };
+}
+
 // Helper to create an extruded 3D landmass mesh + glowing shoreline outline from [lon, lat] polygon
 function createExtrudedIsland(
   coords: [number, number][],
@@ -512,6 +640,8 @@ export default function SingaporeTacticalMap() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [cameraMode, setCameraMode] = useState<CameraViewMode>('tactical');
   const [posture, setPosture] = useState<DefensePosture>('intercept');
+  const [selectedSandboxType, setSelectedSandboxType] = useState<SandboxThreatType>('maritime-usv');
+  const [customThreat, setCustomThreat] = useState<CustomThreatInstance | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 });
   const [projectedBases, setProjectedBases] = useState<ProjectedBaseHud[]>([]);
   const [targetHud, setTargetHud] = useState<ProjectedTargetHud>({
@@ -529,11 +659,25 @@ export default function SingaporeTacticalMap() {
   const smoothedProgressRef = useRef(0);
   const cameraModeRef = useRef<CameraViewMode>('tactical');
   const postureRef = useRef<DefensePosture>('intercept');
+  const selectedSandboxTypeRef = useRef<SandboxThreatType>('maritime-usv');
+  const customThreatRef = useRef<CustomThreatInstance | null>(null);
+  const customDropScrollRef = useRef<number>(-1);
+  const customCounterRef = useRef<number>(1);
   const scrambleResetClockRef = useRef<number>(-1);
-  const lastMissionIdxRef = useRef<number>(-1);
+  const lastMissionKeyRef = useRef<string>('');
 
   useEffect(() => {
     progressRef.current = scrollProgress;
+    // If user scrolls significantly (> 5.5%) after dropping a custom threat, smoothly resume scroll tour
+    if (
+      customThreatRef.current &&
+      customDropScrollRef.current >= 0 &&
+      Math.abs(scrollProgress - customDropScrollRef.current) > 0.055
+    ) {
+      customThreatRef.current = null;
+      customDropScrollRef.current = -1;
+      setCustomThreat(null);
+    }
   }, [scrollProgress]);
 
   useEffect(() => {
@@ -544,6 +688,53 @@ export default function SingaporeTacticalMap() {
     postureRef.current = posture;
   }, [posture]);
 
+  useEffect(() => {
+    selectedSandboxTypeRef.current = selectedSandboxType;
+  }, [selectedSandboxType]);
+
+  const deployThreatAtXZ = (x: number, z: number, overrideType?: SandboxThreatType) => {
+    const tType = overrideType || selectedSandboxTypeRef.current;
+    const nextId = customCounterRef.current++;
+    const instance = buildCustomThreatAtXZ(x, z, tType, nextId);
+    customThreatRef.current = instance;
+    customDropScrollRef.current = progressRef.current;
+    setCustomThreat(instance);
+    setPosture('intercept');
+    postureRef.current = 'intercept';
+    scrambleResetClockRef.current = -2;
+  };
+
+  const deployRandomSandboxThreat = () => {
+    const sampleZones: [number, number][] = [
+      [-235, 130], // Western Malacca / Tuas Approach
+      [-125, 145], // Southern Jurong Anchorage
+      [35, 138],   // Marina South / Central Strait
+      [210, 105],  // Eastern Changi Strait Approach
+      [15, -135],  // Northern Johor Strait (Sembawang)
+      [-175, -45], // Northwestern Lim Chu Kang / Tengah Coast
+    ];
+    const pick = sampleZones[customCounterRef.current % sampleZones.length];
+    const jitterX = (Math.random() - 0.5) * 45;
+    const jitterZ = (Math.random() - 0.5) * 28;
+    deployThreatAtXZ(pick[0] + jitterX, pick[1] + jitterZ);
+  };
+
+  const clearCustomThreat = () => {
+    customThreatRef.current = null;
+    customDropScrollRef.current = -1;
+    setCustomThreat(null);
+    scrambleResetClockRef.current = -2;
+  };
+
+  const handleSelectSandboxType = (tType: SandboxThreatType) => {
+    setSelectedSandboxType(tType);
+    selectedSandboxTypeRef.current = tType;
+    // If a custom threat is already on the map, immediately morph it to the newly selected threat archetype
+    if (customThreatRef.current) {
+      deployThreatAtXZ(customThreatRef.current.worldX, customThreatRef.current.worldZ, tType);
+    }
+  };
+
   const triggerManualReScramble = () => {
     setPosture('intercept');
     postureRef.current = 'intercept';
@@ -551,6 +742,7 @@ export default function SingaporeTacticalMap() {
   };
 
   const jumpToScrollProgress = (targetP: number) => {
+    clearCustomThreat();
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const docTop = window.scrollY + rect.top;
@@ -915,6 +1107,122 @@ export default function SingaporeTacticalMap() {
     scene.add(primarySa1Drone);
     scene.add(secondarySa1Drone);
 
+    // =========================================================================
+    // 4B. DYNAMIC THREAT SANDBOX — 3D HOVER RETICLE & USER-DEPLOYED THREAT MESH
+    // =========================================================================
+    const customThreatContainer = new THREE.Group();
+    customThreatContainer.visible = false;
+    const customMeshesByType: Record<SandboxThreatType, THREE.Group> = {
+      'maritime-usv': buildHostileTarget3D('maritime-usv'),
+      'air-swarm': buildHostileTarget3D('air-swarm'),
+      'ew-vessel': buildHostileTarget3D('ew-vessel'),
+      'fast-attack': buildHostileTarget3D('fast-attack'),
+    };
+    (Object.keys(customMeshesByType) as SandboxThreatType[]).forEach((k) => {
+      customThreatContainer.add(customMeshesByType[k]);
+    });
+
+    // Expanding red radar ping ring when a user drops a custom threat
+    const customDropPulseG = new THREE.RingGeometry(15, 17, 36);
+    customDropPulseG.rotateX(-Math.PI / 2);
+    const customDropPulseMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const customDropPulseMesh = new THREE.Mesh(customDropPulseG, customDropPulseMat);
+    customDropPulseMesh.position.y = 0.5;
+    customThreatContainer.add(customDropPulseMesh);
+    scene.add(customThreatContainer);
+
+    // 3D Tactical Placement Hover Reticle (follows mouse cursor on the 3D Singapore map)
+    const hoverReticleGroup = new THREE.Group();
+    hoverReticleGroup.visible = false;
+    const hoverOuterG = new THREE.RingGeometry(9.5, 11.2, 32);
+    hoverOuterG.rotateX(-Math.PI / 2);
+    const hoverOuterMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.75,
+    });
+    hoverReticleGroup.add(new THREE.Mesh(hoverOuterG, hoverOuterMat));
+
+    const hoverInnerG = new THREE.RingGeometry(2.2, 3.2, 24);
+    hoverInnerG.rotateX(-Math.PI / 2);
+    hoverReticleGroup.add(new THREE.Mesh(hoverInnerG, hoverOuterMat));
+
+    const hoverBeaconGeom = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 32, 0),
+    ]);
+    hoverReticleGroup.add(
+      new THREE.Line(
+        hoverBeaconGeom,
+        new THREE.LineBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.55 })
+      )
+    );
+    scene.add(hoverReticleGroup);
+
+    // Raycaster for Interactive Click-to-Deploy on the 3D Singapore Map
+    const raycaster = new THREE.Raycaster();
+    const pointerNdc = new THREE.Vector2();
+    const seaHitPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5);
+    const hitPoint = new THREE.Vector3();
+    let pointerDownXY: { x: number; y: number } | null = null;
+
+    const getMapIntersection = (clientX: number, clientY: number): THREE.Vector3 | null => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return null;
+      pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNdc, camera);
+      const hit = raycaster.ray.intersectPlane(seaHitPlane, hitPoint);
+      if (!hit) return null;
+      if (hit.x < -305 || hit.x > 305 || hit.z < -195 || hit.z > 220) return null;
+      return hit;
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      pointerDownXY = { x: e.clientX, y: e.clientY };
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const hit = getMapIntersection(e.clientX, e.clientY);
+      if (hit) {
+        hoverReticleGroup.visible = true;
+        hoverReticleGroup.position.set(hit.x, 1.8, hit.z);
+        renderer.domElement.style.cursor = 'crosshair';
+      } else {
+        hoverReticleGroup.visible = false;
+        renderer.domElement.style.cursor = 'default';
+      }
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (!pointerDownXY) return;
+      const distMoved = Math.hypot(e.clientX - pointerDownXY.x, e.clientY - pointerDownXY.y);
+      pointerDownXY = null;
+      // Ignore drags/scroll gestures
+      if (distMoved > 8) return;
+      const hit = getMapIntersection(e.clientX, e.clientY);
+      if (hit) {
+        deployThreatAtXZ(hit.x, hit.z);
+      }
+    };
+
+    const handlePointerLeave = () => {
+      hoverReticleGroup.visible = false;
+      pointerDownXY = null;
+    };
+
+    renderer.domElement.addEventListener('pointerdown', handlePointerDown);
+    renderer.domElement.addEventListener('pointermove', handlePointerMove);
+    renderer.domElement.addEventListener('pointerup', handlePointerUp);
+    renderer.domElement.addEventListener('pointerleave', handlePointerLeave);
+
     // Active Smoothly Morphing & Progressively Drawn 3D Flight Trajectory Arcs
     const trajMatPrimary = new THREE.LineBasicMaterial({
       color: 0x00ff41,
@@ -1028,46 +1336,89 @@ export default function SingaporeTacticalMap() {
         (b.pulseRing.material as THREE.MeshBasicMaterial).opacity = (1.0 - pulsePhase) * 0.55;
       });
 
-      // Gentle motion on hostile targets
+      // Rotate hover placement reticle
+      if (hoverReticleGroup.visible) {
+        hoverReticleGroup.rotation.y = elapsed * 1.6;
+      }
+
+      // Gentle motion on preset hostile targets
       missionTargetGroups.forEach((tg, idx) => {
         tg.mesh.position.x = tg.worldPos.x + Math.sin(elapsed * 0.9 + idx) * 3.5;
       });
 
-      // Determine active intercept mission index (0..3) and local scroll progress within mission
+      // Check if user deployed a Dynamic Custom Threat in the Sandbox
+      const activeCustom = customThreatRef.current;
+
+      // Determine active intercept mission index (0..3)
       const activeMissionIdx =
         p < 0.37 ? 0 : p < 0.58 ? 1 : p < 0.79 ? 2 : 3;
       const activeMission = INTERCEPT_MISSIONS[activeMissionIdx];
       const activeTarget = missionTargetGroups[activeMissionIdx];
 
+      // Update 3D Custom Threat Container visibility & animation
+      if (activeCustom) {
+        customThreatContainer.visible = true;
+        customThreatContainer.position.set(
+          activeCustom.worldX + Math.sin(elapsed * 1.2) * 2.2,
+          activeCustom.targetAltY,
+          activeCustom.worldZ
+        );
+        (Object.keys(customMeshesByType) as SandboxThreatType[]).forEach((k) => {
+          customMeshesByType[k].visible = k === activeCustom.targetType;
+        });
+        const dropPulse = (elapsed * 1.1) % 1.0;
+        const dpScale = 1.0 + dropPulse * 2.4;
+        customDropPulseMesh.scale.set(dpScale, dpScale, dpScale);
+        customDropPulseMat.opacity = (1.0 - dropPulse) * 0.75;
+      } else {
+        customThreatContainer.visible = false;
+      }
+
       // Smoothly cross-fade persistent corridor lines so active sector glows while others stay visible
       sectorCorridorLines.forEach((corridor, idx) => {
-        const targetOp1 = idx === activeMissionIdx ? 0.38 : 0.14;
-        const targetOp2 = idx === activeMissionIdx ? 0.28 : 0.1;
+        const isHighlighted = !activeCustom && idx === activeMissionIdx;
+        const targetOp1 = isHighlighted ? 0.38 : 0.12;
+        const targetOp2 = isHighlighted ? 0.28 : 0.08;
         const m1 = corridor.primary.material as THREE.LineBasicMaterial;
         const m2 = corridor.secondary.material as THREE.LineBasicMaterial;
         m1.opacity += (targetOp1 - m1.opacity) * 0.08;
         m2.opacity += (targetOp2 - m2.opacity) * 0.08;
       });
 
+      const primaryBaseId = activeCustom ? activeCustom.primaryBaseId : activeMission.primaryBaseId;
+      const secondaryBaseId = activeCustom
+        ? activeCustom.secondaryBaseId
+        : activeMission.secondaryBaseId;
+
       const primaryBase =
-        base3DNodes.find((b) => b.spec.id === activeMission.primaryBaseId) || base3DNodes[0];
+        base3DNodes.find((b) => b.spec.id === primaryBaseId) || base3DNodes[0];
       const secondaryBase =
-        base3DNodes.find((b) => b.spec.id === activeMission.secondaryBaseId) || base3DNodes[1];
+        base3DNodes.find((b) => b.spec.id === secondaryBaseId) || base3DNodes[1];
 
-      const rawTargetPos = new THREE.Vector3(
-        activeTarget.mesh.position.x,
-        activeTarget.worldPos.y,
-        activeTarget.mesh.position.z
-      );
+      const rawTargetPos = activeCustom
+        ? new THREE.Vector3(
+            customThreatContainer.position.x,
+            activeCustom.targetAltY + 3.0,
+            customThreatContainer.position.z
+          )
+        : new THREE.Vector3(
+            activeTarget.mesh.position.x,
+            activeTarget.worldPos.y,
+            activeTarget.mesh.position.z
+          );
 
-      // Smoothly morph trajectory origins & target position so switching sectors sweeps smoothly
-      smoothedOrigin1.lerp(primaryBase.worldPos, 0.08);
-      smoothedOrigin2.lerp(secondaryBase.worldPos, 0.08);
-      smoothedTargetPos.lerp(rawTargetPos, 0.085);
+      // Smoothly morph trajectory origins & target position so switching sectors or dropping custom threats sweeps smoothly
+      smoothedOrigin1.lerp(primaryBase.worldPos, 0.09);
+      smoothedOrigin2.lerp(secondaryBase.worldPos, 0.09);
+      smoothedTargetPos.lerp(rawTargetPos, 0.1);
 
-      // Reset scramble cycle only when clicking Re-Launch or starting fresh, keeping transitions fluid
-      if (lastMissionIdxRef.current !== activeMissionIdx || scrambleResetClockRef.current === -2) {
-        lastMissionIdxRef.current = activeMissionIdx;
+      const currentMissionKey = activeCustom
+        ? `custom-${activeCustom.id}`
+        : `mission-${activeMissionIdx}`;
+
+      // Reset scramble cycle when switching missions, dropping a new custom threat, or clicking Re-Launch
+      if (lastMissionKeyRef.current !== currentMissionKey || scrambleResetClockRef.current === -2) {
+        lastMissionKeyRef.current = currentMissionKey;
         missionCycleStart = elapsed;
         scrambleResetClockRef.current = 0;
       }
@@ -1081,7 +1432,7 @@ export default function SingaporeTacticalMap() {
       // CAMERA POSITIONING: SMOOTH GLIDE + AERODYNAMIC ROLL (ZERO CUTS)
       // =======================================================================
       const prevCamX = camera.position.x;
-      if (p < 0.16 || cameraModeRef.current === 'island') {
+      if ((!activeCustom && p < 0.16) || cameraModeRef.current === 'island') {
         const targetCamPos = new THREE.Vector3(
           0,
           310 * portraitZoom,
@@ -1091,12 +1442,14 @@ export default function SingaporeTacticalMap() {
         const desiredLook = new THREE.Vector3(0, 0, 20);
         smoothedLookAt.lerp(desiredLook, 0.075);
       } else {
-        // Swoop camera smoothly to frame both the scrambling coastal/military bases AND the offshore target
+        // Swoop camera smoothly to frame both the scrambling coastal/military bases AND the active/custom target
         const midX = (smoothedOrigin1.x + smoothedTargetPos.x) * 0.5;
         const midZ = (smoothedOrigin1.z + smoothedTargetPos.z) * 0.5;
+        const camOffsetX = activeCustom ? midX * 0.35 : activeMission.cameraOffset[0] * 0.45;
+        const camOffsetY = activeCustom ? 148 : activeMission.cameraOffset[1];
         const desiredCam = new THREE.Vector3(
-          midX * 0.65 + activeMission.cameraOffset[0] * 0.45,
-          activeMission.cameraOffset[1] * portraitZoom,
+          midX * 0.65 + camOffsetX,
+          camOffsetY * portraitZoom,
           midZ + 185 * portraitZoom
         );
         camera.position.lerp(desiredCam, 0.065);
@@ -1114,9 +1467,6 @@ export default function SingaporeTacticalMap() {
       // =======================================================================
       // SMOOTH DRONE SCRAMBLE, PROGRESSIVE TRAIL & KINETIC DART TAKEDOWN
       // =======================================================================
-      // Cycle time: 0.0s -> 2.4s (Drone Scrambling along Trajectory),
-      //             2.4s -> 3.1s (AGM-M1 Dart Launch down Laser Beam),
-      //             3.1s -> 4.5s (Detonation Shockwave & Fireball)
       const cycleDuration = 4.5;
       const cycleTime = (elapsed - missionCycleStart) % cycleDuration;
       const isInterceptMode = postureRef.current === 'intercept';
@@ -1149,7 +1499,6 @@ export default function SingaporeTacticalMap() {
 
       primarySa1Drone.position.copy(smoothedDrone1Pos);
       primarySa1Drone.lookAt(desiredD1Look);
-      // Add realistic bank angle when turning toward next target
       const droneTurnRate = THREE.MathUtils.clamp((smoothedDrone1Pos.x - prevD1X) * -0.18, -0.55, 0.55);
       primarySa1Drone.rotateZ(droneTurnRate);
 
@@ -1158,7 +1507,6 @@ export default function SingaporeTacticalMap() {
       secondarySa1Drone.rotateZ(droneTurnRate * 0.8);
 
       // Progressively draw the active glowing 3D trajectory arcs from Base up to the Drone's nose
-      // (and full path during terminal lock/strike)
       const trailLimit1 = Math.max(0.12, u1 * 0.88);
       const trailLimit2 = Math.max(0.12, u2 * 0.82);
       const primaryCurvePts: THREE.Vector3[] = [];
@@ -1242,9 +1590,7 @@ export default function SingaporeTacticalMap() {
 
         const nextBases: ProjectedBaseHud[] = base3DNodes.map((b) => {
           const proj = projectToScreen(b.worldPos, w, h);
-          const isScrambling =
-            b.spec.id === activeMission.primaryBaseId ||
-            b.spec.id === activeMission.secondaryBaseId;
+          const isScrambling = b.spec.id === primaryBaseId || b.spec.id === secondaryBaseId;
           return {
             ...b.spec,
             x: proj.x,
@@ -1287,18 +1633,25 @@ export default function SingaporeTacticalMap() {
       isDisposed = true;
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
+      renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
+      renderer.domElement.removeEventListener('pointermove', handlePointerMove);
+      renderer.domElement.removeEventListener('pointerup', handlePointerUp);
+      renderer.domElement.removeEventListener('pointerleave', handlePointerLeave);
       renderer.dispose();
     };
   }, []);
 
-  const isSectorZoom = scrollProgress >= 0.16;
+  const isCustomActive = customThreat !== null;
+  const isSectorZoom = isCustomActive || scrollProgress >= 0.16;
   const activeMissionIdx =
     scrollProgress < 0.37 ? 0 : scrollProgress < 0.58 ? 1 : scrollProgress < 0.79 ? 2 : 3;
-  const activeMission = INTERCEPT_MISSIONS[activeMissionIdx];
+  const scrollMission = INTERCEPT_MISSIONS[activeMissionIdx];
+
+  const displayMission = customThreat || scrollMission;
   const primaryBaseSpec =
-    SINGAPORE_BASES.find((b) => b.id === activeMission.primaryBaseId) || SINGAPORE_BASES[0];
+    SINGAPORE_BASES.find((b) => b.id === displayMission.primaryBaseId) || SINGAPORE_BASES[0];
   const secondaryBaseSpec =
-    SINGAPORE_BASES.find((b) => b.id === activeMission.secondaryBaseId) || SINGAPORE_BASES[1];
+    SINGAPORE_BASES.find((b) => b.id === displayMission.secondaryBaseId) || SINGAPORE_BASES[1];
 
   const isIntercept = posture === 'intercept';
   const accentColor = isIntercept ? '#ef4444' : '#00ff41';
@@ -1437,6 +1790,20 @@ export default function SingaporeTacticalMap() {
               />
               <circle cx={targetHud.x} cy={targetHud.y} r="4" fill="#ef4444" />
 
+              {isCustomActive && (
+                <text
+                  x={targetHud.x}
+                  y={targetHud.y + 46}
+                  textAnchor="middle"
+                  fill="#ef4444"
+                  fontSize="9"
+                  fontFamily="monospace"
+                  fontWeight="bold"
+                >
+                  {`CUSTOM THREAT [${customThreat.lat.toFixed(2)}°N, ${customThreat.lon.toFixed(2)}°E]`}
+                </text>
+              )}
+
               {targetHud.phase === 'impact' && isIntercept && (
                 <>
                   <circle
@@ -1481,13 +1848,13 @@ export default function SingaporeTacticalMap() {
                   className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.18em] font-bold truncate ${accentTextClass}`}
                 >
                   {isSectorZoom
-                    ? `${activeMission.code} // SCRAMBLE FROM ${primaryBaseSpec.code}`
+                    ? `${displayMission.code} // SCRAMBLE FROM ${primaryBaseSpec.code}`
                     : 'SINGAPORE SOVEREIGN DEFENSE DOME // 7 COASTAL HIVES & SAF AIRBASES'}
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-white truncate">
                   {isSectorZoom
-                    ? `TARGET: ${activeMission.targetName}`
-                    : 'Scroll Down to Scramble SA-1 Drones from Coastal Bases to Intercept Threats'}
+                    ? `TARGET: ${displayMission.targetName}`
+                    : 'Click Anywhere on the 3D Map to Drop a Threat, or Scroll Down'}
                 </p>
               </div>
             </div>
@@ -1498,11 +1865,11 @@ export default function SingaporeTacticalMap() {
             {/* Sector Quick-Jump Buttons */}
             <div className="hidden md:flex items-center gap-1 bg-black/80 backdrop-blur-xl border border-white/15 rounded-xl p-1 text-[10px] font-mono uppercase">
               {[
-                { label: 'Overview', p: 0.02, active: !isSectorZoom },
-                { label: '01 Tuas', p: 0.24, active: isSectorZoom && activeMissionIdx === 0 },
-                { label: '02 Tengah/Jurong', p: 0.46, active: isSectorZoom && activeMissionIdx === 1 },
-                { label: '03 Marina/PLAB', p: 0.67, active: isSectorZoom && activeMissionIdx === 2 },
-                { label: '04 Changi', p: 0.88, active: isSectorZoom && activeMissionIdx === 3 },
+                { label: 'Overview', p: 0.02, active: !isSectorZoom && !isCustomActive },
+                { label: '01 Tuas', p: 0.24, active: !isCustomActive && isSectorZoom && activeMissionIdx === 0 },
+                { label: '02 Tengah/Jurong', p: 0.46, active: !isCustomActive && isSectorZoom && activeMissionIdx === 1 },
+                { label: '03 Marina/PLAB', p: 0.67, active: !isCustomActive && isSectorZoom && activeMissionIdx === 2 },
+                { label: '04 Changi', p: 0.88, active: !isCustomActive && isSectorZoom && activeMissionIdx === 3 },
               ].map((btn) => (
                 <button
                   key={btn.label}
@@ -1574,17 +1941,76 @@ export default function SingaporeTacticalMap() {
         </div>
 
         {/* =====================================================================
+            DYNAMIC THREAT SCENARIO BUILDER / SANDBOX BAR (Bottom-Left HUD)
+           ===================================================================== */}
+        <div className="pointer-events-auto hidden sm:flex flex-col gap-2 absolute z-30 left-6 lg:left-10 bottom-6 lg:bottom-8 bg-black/85 backdrop-blur-2xl border border-white/15 rounded-2xl p-3.5 shadow-2xl max-w-[440px]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white font-bold">
+                THREAT SANDBOX // CLICK ANYWHERE ON 3D MAP
+              </span>
+            </div>
+            {isCustomActive && (
+              <button
+                type="button"
+                onClick={clearCustomThreat}
+                className="text-[9px] font-mono uppercase tracking-wider text-sky-300 hover:text-white underline"
+              >
+                Resume Scroll
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {(Object.keys(SANDBOX_THREAT_PRESETS) as SandboxThreatType[]).map((tKey) => {
+              const preset = SANDBOX_THREAT_PRESETS[tKey];
+              const isSelected = selectedSandboxType === tKey;
+              return (
+                <button
+                  key={tKey}
+                  type="button"
+                  onClick={() => handleSelectSandboxType(tKey)}
+                  className={`rounded-lg px-2 py-1.5 text-[9.5px] font-mono uppercase tracking-wider transition-all truncate ${
+                    isSelected
+                      ? 'bg-red-500 text-white font-bold shadow-[0_0_12px_rgba(239,68,68,0.45)]'
+                      : 'bg-white/[0.05] text-white/65 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {preset.shortLabel}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-0.5 text-[10px] font-mono text-white/60">
+            <span className="truncate">
+              {isCustomActive
+                ? `ACTIVE DROP: ${customThreat.lat.toFixed(3)}°N, ${customThreat.lon.toFixed(3)}°E`
+                : 'Click sea/airspace on map to auto-scramble nearest Hive'}
+            </span>
+            <button
+              type="button"
+              onClick={deployRandomSandboxThreat}
+              className="shrink-0 rounded-lg bg-[#00ff41]/15 hover:bg-[#00ff41] border border-[#00ff41]/50 text-[#00ff41] hover:text-black px-2.5 py-1 text-[9.5px] font-mono font-bold uppercase tracking-wider transition-all"
+            >
+              + Random Drop
+            </button>
+          </div>
+        </div>
+
+        {/* =====================================================================
             PHASE 0 PROMPT OVERLAY (Full Island Overview 0% - 16%)
            ===================================================================== */}
         {!isSectorZoom && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-6 sm:bottom-10 z-25 flex justify-center px-4">
-            <div className="bg-black/85 backdrop-blur-xl border border-[#00ff41]/40 rounded-2xl px-5 py-3.5 sm:px-7 sm:py-4 text-center max-w-2xl shadow-2xl">
+          <div className="pointer-events-none absolute inset-x-0 bottom-6 sm:bottom-10 z-25 flex justify-center px-4 lg:pl-72">
+            <div className="bg-black/85 backdrop-blur-xl border border-[#00ff41]/40 rounded-2xl px-5 py-3.5 sm:px-7 sm:py-4 text-center max-w-xl shadow-2xl">
               <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.22em] text-[#00ff41] font-bold mb-1">
                 7 COASTAL DRONE HIVES &amp; SAF AIRBASES // 360° SOVEREIGN PERIMETER
               </p>
               <p className="text-xs sm:text-sm text-white/85">
-                Scroll down to watch <strong className="text-[#00ff41]">SA-1 &ldquo;Vanguard&rdquo;</strong>{' '}
-                interceptors scramble from <strong className="text-sky-300">Tuas Naval Base, Tengah AB, Jurong Island, Marina South, Paya Lebar AB, and Changi</strong> along 3D trajectories to neutralize incoming threats.
+                <strong className="text-red-400">Click anywhere on the 3D Singapore map</strong> to
+                drop a custom threat, or scroll down to tour all 4 coastal intercept sectors.
               </p>
             </div>
           </div>
@@ -1602,36 +2028,40 @@ export default function SingaporeTacticalMap() {
                 <span
                   className={`text-[10px] font-mono uppercase tracking-[0.18em] font-bold px-2.5 py-1 rounded ${accentBgClass} ${accentTextClass}`}
                 >
-                  {activeMission.code}
+                  {displayMission.code}
                 </span>
                 <span className="text-xs font-mono text-white/60">
-                  INTERCEPT: <strong className="text-[#00ff41]">{activeMission.interceptTimeSec}</strong>
+                  INTERCEPT: <strong className="text-[#00ff41]">{displayMission.interceptTimeSec}</strong>
                 </span>
               </div>
 
               <p className="text-[11px] font-mono uppercase tracking-wider text-white/45 mt-1">
-                {activeMission.sectorTitle} ({activeMission.distanceKm})
+                {displayMission.sectorTitle} ({displayMission.distanceKm})
               </p>
               <h3 className="text-xl font-bold text-white tracking-tight mt-1 mb-1">
-                {activeMission.targetName}
+                {displayMission.targetName}
               </h3>
               <p className={`text-xs font-mono mb-4 ${accentTextClass}`}>
-                {activeMission.threatTelemetry}
+                {displayMission.threatTelemetry}
               </p>
 
               {/* Launching Coastal Hives & Military Camps */}
               <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3.5 mb-3.5">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-[#00ff41] font-bold mb-1.5">
-                  SCRAMBLING COASTAL HIVE &amp; MILITARY BASE
+                  AUTO-SELECTED NEAREST COASTAL HIVE &amp; BASE
                 </p>
                 <div className="space-y-1 text-xs">
-                  <p className="text-white font-semibold flex items-center justify-between">
-                    <span>1. {primaryBaseSpec.name}</span>
-                    <span className="text-[10px] font-mono text-[#00ff41]">PRIMARY</span>
+                  <p className="text-white font-semibold flex items-center justify-between gap-2">
+                    <span className="truncate">1. {primaryBaseSpec.name}</span>
+                    <span className="text-[10px] font-mono text-[#00ff41] shrink-0">
+                      {customThreat ? `PRIMARY (${customThreat.primaryDistKm})` : 'PRIMARY'}
+                    </span>
                   </p>
-                  <p className="text-white/75 flex items-center justify-between">
-                    <span>2. {secondaryBaseSpec.name}</span>
-                    <span className="text-[10px] font-mono text-sky-400">WINGMAN</span>
+                  <p className="text-white/75 flex items-center justify-between gap-2">
+                    <span className="truncate">2. {secondaryBaseSpec.name}</span>
+                    <span className="text-[10px] font-mono text-sky-400 shrink-0">
+                      {customThreat ? `WINGMAN (${customThreat.secondaryDistKm})` : 'WINGMAN'}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -1642,25 +2072,36 @@ export default function SingaporeTacticalMap() {
                   3D TRAJECTORY &amp; TARGET TAKEDOWN
                 </p>
                 <p className="text-xs text-white/80 leading-relaxed mb-2">
-                  {activeMission.scrambleSummary}
+                  {displayMission.scrambleSummary}
                 </p>
                 <p className="text-xs text-white/70 leading-relaxed">
-                  {activeMission.takedownMechanics}
+                  {displayMission.takedownMechanics}
                 </p>
               </div>
 
               {/* Active Hardware / Software Chain + Re-Launch Button */}
               <div className="flex items-center justify-between gap-2.5 pt-2 border-t border-white/10">
                 <span className="text-[10px] font-mono text-sky-400 font-bold truncate">
-                  {activeMission.subsystemBadge}
+                  {displayMission.subsystemBadge}
                 </span>
-                <button
-                  type="button"
-                  onClick={triggerManualReScramble}
-                  className="shrink-0 rounded-lg bg-red-500/20 hover:bg-red-500 border border-red-500/60 text-red-300 hover:text-white px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
-                >
-                  Re-Launch Drone
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isCustomActive && (
+                    <button
+                      type="button"
+                      onClick={clearCustomThreat}
+                      className="rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white/80 hover:text-white px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-all"
+                    >
+                      Exit Sandbox
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={triggerManualReScramble}
+                    className="rounded-lg bg-red-500/20 hover:bg-red-500 border border-red-500/60 text-red-300 hover:text-white px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
+                  >
+                    Re-Launch Drone
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1679,22 +2120,26 @@ export default function SingaporeTacticalMap() {
                   <span
                     className={`text-[10px] font-mono uppercase tracking-wider font-bold ${accentTextClass}`}
                   >
-                    {activeMission.code} // {activeMission.targetName}
+                    {displayMission.code} // {displayMission.targetName}
                   </span>
                   <span className="text-[10px] font-mono text-[#00ff41] shrink-0">
-                    {activeMission.interceptTimeSec}
+                    {displayMission.interceptTimeSec}
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-sky-300 mb-1">
                   LAUNCHING FROM: {primaryBaseSpec.name} + {secondaryBaseSpec.code}
                 </p>
                 <p className="text-[11px] sm:text-xs text-white/80 leading-snug mb-2">
-                  {activeMission.scrambleSummary}
+                  {displayMission.scrambleSummary}
                 </p>
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
-                  <span className="text-[10px] font-mono text-white/60 truncate">
-                    {activeMission.subsystemBadge}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={deployRandomSandboxThreat}
+                    className="shrink-0 rounded bg-[#00ff41]/20 border border-[#00ff41]/50 text-[#00ff41] px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider"
+                  >
+                    + Drop Random Threat
+                  </button>
                   <button
                     type="button"
                     onClick={triggerManualReScramble}
